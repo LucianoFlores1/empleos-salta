@@ -1,0 +1,32 @@
+[
+  {
+    "title": "ABOGADO JR",
+    "id": "1BfzM3XrfITS2rhTyW1tbLsqGNGko_WMj",
+    "source": "https://drive.google.com/drive/folders/1wggnirX8-8xw3Z6qonhljtA7bqFo3gzA",
+    "category": "legal",
+    "company": "Estudio Jurídico Integral",
+    "location": "Salta Capital",
+    "description": "Buscamos un Abogado Jr proactivo para incorporarse a nuestro equipo, con conocimientos en derecho civil y comercial.",
+    "createdAt": "2026-05-25T10:00:00.000Z"
+  },
+  {
+    "title": "Acompañante de granja y estimulación temprana",
+    "id": "1FH7HiOq_iPMp1WGEJUBwpfrKKeuvD8Uz",
+    "source": "https://drive.google.com/drive/folders/1wggnirX8-8xw3Z6qonhljtA7bqFo3gzA",
+    "category": "salud",
+    "company": "Centro Terapéutico",
+    "location": "Cerrillos, Salta",
+    "description": "Se necesita acompañante terapeútico para tareas en granja educativa y estimulación temprana de niños.",
+    "createdAt": "2026-05-26T14:30:00.000Z"
+  },
+  {
+    "title": "Adm.carga documental",
+    "id": "1v24r1uRRlgHo3sIt9PtNDuodZ1u8YO4P",
+    "source": "https://drive.google.com/drive/folders/1wggnirX8-8xw3Z6qonhljtA7bqFo3gzA",
+    "category": "administracion",
+    "company": "Logística NOA S.A.",
+    "location": "General Güemes, Salta",
+    "description": "Buscamos administrativo/a para carga documental, control de remitos y facturación.",
+    "createdAt": "2026-05-27T09:15:00.000Z"
+  }
+]
