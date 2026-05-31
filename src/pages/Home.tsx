@@ -15,17 +15,23 @@ export default function Home() {
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInput, setPageInput] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const ITEMS_PER_PAGE = 12;
 
   useEffect(() => {
+    setLoading(true);
     getJobs().then(fetchedJobs => {
       const enrichedJobs = fetchedJobs.map(j => ({
         ...j,
         category: j.category || inferCategory(j.title),
       }));
       setJobs(enrichedJobs);
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page]);
 
   const categories = useMemo(() => {
     // Keep empty categories if they are in CATEGORIES, but add any others that might exist in jobs
@@ -161,7 +167,21 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {currentJobs.length === 0 ? (
+          {loading ? (
+            Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="animate-pulse bg-white rounded-2xl overflow-hidden border border-[#E8E2DA] shadow-sm flex flex-col h-full min-h-[300px]">
+                <div className="h-32 sm:h-40 bg-[#E8E2DA]"></div>
+                <div className="p-5 flex flex-col flex-1 gap-4">
+                  <div className="h-5 bg-[#E8E2DA] rounded w-3/4"></div>
+                  <div className="h-3 bg-[#E8E2DA] rounded w-full"></div>
+                  <div className="mt-auto flex justify-between items-center">
+                    <div className="h-4 bg-[#E8E2DA] rounded w-1/3"></div>
+                    <div className="h-4 bg-[#E8E2DA] rounded w-1/4"></div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : currentJobs.length === 0 ? (
             <div className="col-span-full py-16 text-center text-[#8C7E6F] bg-[#F9F7F4] rounded-2xl border border-dashed border-[#E8E2DA]">
               No se encontraron ofertas que coincidan con tu búsqueda.
             </div>

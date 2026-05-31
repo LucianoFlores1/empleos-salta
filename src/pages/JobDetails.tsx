@@ -27,7 +27,29 @@ export default function JobDetails() {
     }
   }, [id]);
 
-  if (loading) return <div className="flex justify-center py-20"><div className="animate-pulse w-10 h-10 bg-[#D1C7BC] rounded-full"></div></div>;
+  if (loading) return (
+    <div className="max-w-5xl mx-auto animate-pulse">
+      <div className="h-6 w-24 bg-[#E8E2DA] rounded mb-6"></div>
+      <div className="bg-white rounded-2xl border border-[#E8E2DA] shadow-sm overflow-hidden flex flex-col md:flex-row h-[600px]">
+        <div className="w-full md:w-1/2 lg:w-[55%] bg-[#F9F7F4] border-r border-[#E8E2DA]"></div>
+        <div className="p-6 md:p-8 flex flex-col flex-1 gap-6">
+           <div>
+             <div className="h-6 bg-[#E8E2DA] rounded w-16 mb-4"></div>
+             <div className="h-10 bg-[#E8E2DA] rounded w-3/4"></div>
+           </div>
+           <div className="flex gap-4">
+             <div className="h-5 bg-[#E8E2DA] rounded w-24"></div>
+             <div className="h-5 bg-[#E8E2DA] rounded w-32"></div>
+           </div>
+           <div className="mt-8 flex-1">
+             <div className="h-4 bg-[#E8E2DA] rounded w-full mb-3"></div>
+             <div className="h-4 bg-[#E8E2DA] rounded w-full mb-3"></div>
+             <div className="h-4 bg-[#E8E2DA] rounded w-2/3"></div>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
   if (error || !job) return (
     <div className="text-center py-20 text-[#8C7E6F] bg-white rounded-2xl border border-[#E8E2DA] p-8 shadow-sm max-w-lg mx-auto">
       <h2 className="text-xl font-bold text-[#4A3F35] mb-2">Oferta no encontrada</h2>
