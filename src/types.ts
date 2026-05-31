@@ -7,4 +7,5 @@ export interface Job {
   location?: string;
   description?: string;
   createdAt: string;
+  date?: string;
 }

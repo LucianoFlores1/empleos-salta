@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    match /admins/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      // Allow the specific developer email to bootstrap admin privileges
+      allow write: if isSignedIn() && (
+        isAdmin() || 
+        (request.auth.token.email_verified == true && request.auth.token.email == 'chisipufli.chisito@gmail.com')
+      );
+    }
+
+    match /jobs/{jobId} {
+      function isValidJob(data) {
+        return data.keys().hasAll(['title', 'source', 'createdAt'])
+          && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && data.source is string && data.source.size() > 0 && data.source.size() <= 500
+          && data.createdAt is string && data.createdAt.size() > 0 && data.createdAt.size() <= 50
+          && (!('date' in data) || (data.date is string && data.date.size() <= 50))
+          && (!('category' in data) || (data.category is string && data.category.size() <= 100))
+          && (!('company' in data) || (data.company is string && data.company.size() <= 200))
+          && (!('location' in data) || (data.location is string && data.location.size() <= 200))
+          && (!('description' in data) || (data.description is string && data.description.size() <= 5000));
+      }
+
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(jobId) && isValidJob(incoming());
+      // On update, checking if isValidJob still holds
+      allow update: if isAdmin() && isValidId(jobId) && isValidJob(incoming());
+      allow delete: if isAdmin() && isValidId(jobId);
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "entities": {
+    "Job": {
+      "title": "Job",
+      "description": "A job posting",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "source": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "category": { "type": "string" },
+        "company": { "type": "string" },
+        "location": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["title", "source", "createdAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "An admin user who can create, update, and delete jobs",
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  },
+  "firestore": {
+    "jobs/{jobId}": {
+      "schema": { "$ref": "#/entities/Job" },
+      "description": "List of jobs published by admins"
+    },
+    "admins/{userId}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "List of admin users"
+    }
+  }
+}

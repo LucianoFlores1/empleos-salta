@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /api/jobs
+
+# Sitemaps can be linked here later if needed
+# Sitemap: https://empleos-salta.ejemplo.com/sitemap.xml

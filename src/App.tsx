@@ -16,8 +16,8 @@ function Layout() {
       <header className="h-20 border-b border-[#E8E2DA] sticky top-0 z-10 px-4 sm:px-8 bg-white flex items-center justify-between">
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#8B4513] rounded-lg flex items-center justify-center text-white font-bold text-xl">
-              S
+            <div className="w-12 h-12 overflow-hidden shrink-0 flex items-center justify-center">
+              <img src="/logo.png" alt="Empleos Salta Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-[#4A3F35]">EMPLEOS SALTA</h1>

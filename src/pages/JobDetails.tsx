@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Job } from '../types';
 import { getJob } from '../api';
-import { inferCategory } from '../utils';
-import { ArrowLeft, MapPin, Building, Calendar, Share2, ExternalLink } from 'lucide-react';
+import { inferCategory, formatRelativeDate } from '../utils';
+import { ArrowLeft, MapPin, Building, Calendar, Share2, ExternalLink, Image as ImageIcon } from 'lucide-react';
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -51,7 +51,7 @@ export default function JobDetails() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-[#8C7E6F] hover:text-[#4A3F35] mb-6 transition-colors font-medium">
         <ArrowLeft size={16} /> Volver
       </button>
@@ -59,16 +59,23 @@ export default function JobDetails() {
       <div className="bg-white rounded-2xl border border-[#E8E2DA] shadow-sm overflow-hidden flex flex-col md:flex-row">
         
         {/* Full Image */}
-        <div className="w-full md:w-2/5 aspect-square md:aspect-auto bg-[#F9F7F4] shrink-0 relative">
-          <img 
-            src={`https://drive.google.com/thumbnail?id=${job.id}&sz=w1200`} 
-            alt={job.title}
-            className="w-full h-full object-cover object-center absolute inset-0"
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+        <div className="w-full md:w-1/2 lg:w-[55%] bg-[#F9F7F4] shrink-0 p-4 sm:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#E8E2DA]">
+          <a href={`https://drive.google.com/uc?export=view&id=${job.id}`} target="_blank" rel="noopener noreferrer" className="relative group w-full max-w-lg mx-auto block">
+            <img 
+              src={`https://drive.google.com/thumbnail?id=${job.id}&sz=w1200`} 
+              alt={job.title}
+              className="w-full h-auto object-contain rounded-xl shadow-md border border-[#E8E2DA] transition-transform group-hover:scale-[1.02] duration-300"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center pointer-events-none">
+               <span className="bg-white text-[#4A3F35] px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow-lg">
+                 <ImageIcon size={18} /> Ampliar Flyer
+               </span>
+            </div>
+          </a>
         </div>
 
         {/* Content */}
@@ -83,7 +90,7 @@ export default function JobDetails() {
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-y-3 gap-x-6 text-sm text-[#6B5E4F] mb-8 border-b border-[#E8E2DA] pb-6">
+          <div className="flex flex-wrap gap-y-3 gap-x-6 text-sm text-[#6B5E4F] mb-8">
             {job.company && (
               <div className="flex items-center gap-2">
                 <Building size={18} className="text-[#8C7E6F]" />
@@ -96,34 +103,51 @@ export default function JobDetails() {
                 <span>{job.location}</span>
               </div>
             )}
-            {job.createdAt && (
+            {(job.date || job.createdAt) && (
               <div className="flex items-center gap-2">
                 <Calendar size={18} className="text-[#8C7E6F]" />
-                <span>{new Date(job.createdAt).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span>
+                  {(() => {
+                    const dateStr = job.date || job.createdAt;
+                    const { text, type } = formatRelativeDate(dateStr, !!job.date);
+                    if (type === 'obsolete') return <span className="text-yellow-900 font-extrabold bg-yellow-300 border border-yellow-400 px-2 py-0.5 rounded shadow-sm inline-block transform -rotate-1 text-xs uppercase tracking-widest ml-1">{text}</span>;
+                    if (type === 'today') return <span className="text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded">{text}</span>;
+                    if (type === 'yesterday') return <span className="text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded">{text}</span>;
+                    return new Date(dateStr).toLocaleDateString('es-AR', { 
+                      timeZone: job.date ? 'UTC' : undefined, 
+                      year: 'numeric', month: 'long', day: 'numeric' 
+                    });
+                  })()}
+                </span>
               </div>
             )}
           </div>
 
-          <div className="prose prose-sm sm:prose-base text-[#6B5E4F] max-w-none flex-1">
-            <h3 className="text-lg font-bold text-[#4A3F35] mb-3">Acerca de la posición</h3>
-            {job.description ? (
-              <div className="whitespace-pre-wrap">{job.description}</div>
-            ) : (
-              <p className="italic text-[#8C7E6F]">Mire la imagen adjunta para más detalles sobre esta oferta.</p>
-            )}
-          </div>
+          {job.description && (
+             <div className="prose prose-sm sm:prose-base text-[#6B5E4F] max-w-none flex-1 mb-6">
+                <h3 className="text-lg font-bold text-[#4A3F35] mb-3">Información Adicional</h3>
+                <div className="whitespace-pre-wrap">{job.description}</div>
+             </div>
+          )}
 
-          <div className="mt-10 pt-6 border-t border-[#E8E2DA] flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <p className="text-sm text-[#8C7E6F]">¿Cumplis con los requisitos? ¡Postulate ahora!</p>
-            
-            <a 
-              href={job.source} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#8B4513] hover:bg-[#723A0F] text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
-            >
-              Aplicar a Oferta <ExternalLink size={20} />
-            </a>
+          <div className={`mt-auto ${job.description ? 'pt-6 border-t border-[#E8E2DA]' : ''}`}>
+            <div className="bg-[#F9F7F4] rounded-xl p-5 md:p-6 border border-[#E8E2DA]">
+              <div className="flex items-start gap-3 sm:gap-4 flex-col sm:flex-row">
+                <div className="bg-[#8B4513] text-white p-2.5 rounded-lg shrink-0">
+                  <ExternalLink size={20} />
+                </div>
+                <div>
+                  <h4 className="text-[#4A3F35] font-bold text-base mb-2">¿Cómo postularse?</h4>
+                  <p className="text-sm text-[#8C7E6F] leading-relaxed mb-3">
+                    Toda la información sobre contacto, requisitos o correos para enviar CV está <strong>detallada en el flyer</strong> de la oferta.
+                  </p>
+                  <ul className="text-sm text-[#8C7E6F] leading-relaxed list-disc pl-4 space-y-1">
+                    <li>Revisá atentamente el flyer para ver el email o teléfono de la empresa.</li>
+                    <li>Tocá la imagen para ampliarla y leer todo con claridad.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

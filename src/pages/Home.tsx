@@ -2,16 +2,18 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Job } from '../types';
 import { getJobs } from '../api';
-import { inferCategory } from '../utils';
+import { inferCategory, CATEGORIES, formatRelativeDate } from '../utils';
 import { Search, MapPin, Building, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 
 export default function Home() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
-  const [dateFilter, setDateFilter] = useState<'all'|'7days'|'30days'>('all');
+  const [dateFilter, setDateFilter] = useState<'all'|'3days'|'7days'|'30days'>('all');
   const [sort, setSort] = useState<'recent' | 'relevant' | 'az'>('recent');
   const [page, setPage] = useState(1);
+  const [isEditingPage, setIsEditingPage] = useState(false);
+  const [pageInput, setPageInput] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const ITEMS_PER_PAGE = 12;
 
@@ -26,8 +28,9 @@ export default function Home() {
   }, []);
 
   const categories = useMemo(() => {
-    const cats = new Set(jobs.map(j => j.category || 'Otros').filter(Boolean));
-    return Array.from(cats) as string[];
+    // Keep empty categories if they are in CATEGORIES, but add any others that might exist in jobs
+    const cats = new Set([...CATEGORIES, ...jobs.map(j => j.category || 'Otros').filter(Boolean)]);
+    return Array.from(cats);
   }, [jobs]);
 
   const filteredJobs = useMemo(() => {
@@ -47,7 +50,7 @@ export default function Home() {
 
     if (dateFilter !== 'all') {
       const now = new Date().getTime();
-      const diff = dateFilter === '7days' ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+      const diff = dateFilter === '3days' ? 3 * 24 * 60 * 60 * 1000 : dateFilter === '7days' ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
       result = result.filter(j => (now - new Date(j.createdAt).getTime()) <= diff);
     }
 
@@ -61,6 +64,16 @@ export default function Home() {
   }, [jobs, search, categoryFilter, dateFilter, sort]);
 
   const totalPages = Math.ceil(filteredJobs.length / ITEMS_PER_PAGE);
+
+  const handlePageSubmit = () => {
+    const newPage = parseInt(pageInput, 10);
+    if (!isNaN(newPage)) {
+      if (newPage > totalPages) setPage(totalPages);
+      else if (newPage < 1) setPage(1);
+      else setPage(newPage);
+    }
+    setIsEditingPage(false);
+  };
 
   const currentJobs = filteredJobs.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
@@ -98,6 +111,7 @@ export default function Home() {
           <h3 className="text-xs font-bold text-[#8C7E6F] uppercase tracking-wider mt-4 mb-4">Publicado en</h3>
           <div className="flex flex-col gap-2">
             <button onClick={() => { setDateFilter('all'); setPage(1); }} className={`w-full text-left py-2 px-3 text-sm rounded-lg transition-colors ${dateFilter === 'all' ? 'bg-[#E8E2DA] text-[#4A3F35] font-medium' : 'text-[#6B5E4F] hover:bg-[#E8E2DA]'}`}>Todas</button>
+            <button onClick={() => { setDateFilter('3days'); setPage(1); }} className={`w-full text-left py-2 px-3 text-sm rounded-lg transition-colors ${dateFilter === '3days' ? 'bg-[#E8E2DA] text-[#4A3F35] font-medium' : 'text-[#6B5E4F] hover:bg-[#E8E2DA]'}`}>Últimos 3 días</button>
             <button onClick={() => { setDateFilter('7days'); setPage(1); }} className={`w-full text-left py-2 px-3 text-sm rounded-lg transition-colors ${dateFilter === '7days' ? 'bg-[#E8E2DA] text-[#4A3F35] font-medium' : 'text-[#6B5E4F] hover:bg-[#E8E2DA]'}`}>Últimos 7 días</button>
             <button onClick={() => { setDateFilter('30days'); setPage(1); }} className={`w-full text-left py-2 px-3 text-sm rounded-lg transition-colors ${dateFilter === '30days' ? 'bg-[#E8E2DA] text-[#4A3F35] font-medium' : 'text-[#6B5E4F] hover:bg-[#E8E2DA]'}`}>Últimos 30 días</button>
           </div>
@@ -111,7 +125,7 @@ export default function Home() {
              <div className="relative">
               <input 
                 type="text" 
-                placeholder="Buscar empleo (ej. Abogado, Desarrollador)..." 
+                placeholder="Buscar empleo (ej. Administracion, Abogado)..." 
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="w-full pl-4 pr-10 py-3 bg-white border border-[#E8E2DA] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#8B4513] focus:border-transparent transition-all shadow-sm text-[#2D2A26] placeholder-[#A6998A]"
@@ -180,7 +194,14 @@ export default function Home() {
                 </p>
                 <div className="flex justify-between items-center mt-auto">
                   <span className="text-[10px] text-[#A6998A] italic">
-                    {new Date(job.createdAt).toLocaleDateString()}
+                    {(() => {
+                      const dateStr = job.date || job.createdAt;
+                      const { text, type } = formatRelativeDate(dateStr, !!job.date);
+                      if (type === 'obsolete') return <span className="text-yellow-900 font-extrabold bg-yellow-300 border border-yellow-400 px-2 py-0.5 rounded shadow-sm inline-block transform -rotate-2 text-[9px] uppercase tracking-widest">{text}</span>;
+                      if (type === 'today') return <span className="text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded">{text}</span>;
+                      if (type === 'yesterday') return <span className="text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded">{text}</span>;
+                      return text;
+                    })()}
                   </span>
                   <span className="text-[#8B4513] text-xs font-bold group-hover:underline">Postularse →</span>
                 </div>
@@ -198,9 +219,31 @@ export default function Home() {
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="text-xs font-bold text-[#4A3F35] bg-[#E8E2DA] px-3 py-1.5 rounded-lg">
-              {page} / {totalPages}
-            </span>
+            {isEditingPage ? (
+              <div className="flex items-center gap-1 bg-[#E8E2DA] px-2 py-1 rounded-lg">
+                <input
+                  type="number"
+                  value={pageInput}
+                  onChange={(e) => setPageInput(e.target.value)}
+                  onBlur={handlePageSubmit}
+                  onKeyDown={(e) => e.key === 'Enter' && handlePageSubmit()}
+                  autoFocus
+                  className="w-10 text-center text-xs font-bold text-[#4A3F35] bg-white border border-[#D8D2CA] outline-none rounded py-0.5 no-spinners"
+                />
+                <span className="text-xs font-bold text-[#4A3F35]">/ {totalPages}</span>
+              </div>
+            ) : (
+              <span 
+                onClick={() => {
+                  setIsEditingPage(true);
+                  setPageInput(page.toString());
+                }}
+                className="cursor-pointer text-xs font-bold text-[#4A3F35] bg-[#E8E2DA] hover:bg-[#D8D2CA] px-3 py-1.5 rounded-lg transition-colors"
+                title="Ir a página"
+              >
+                {page} / {totalPages}
+              </span>
+            )}
             <button 
               disabled={page === totalPages} 
               onClick={() => setPage(p => p + 1)}
