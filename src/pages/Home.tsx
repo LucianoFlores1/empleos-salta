@@ -95,7 +95,15 @@ export default function Home() {
       {/* Sidebar Filters */}
       <aside className={`w-full md:w-72 shrink-0 flex flex-col gap-8 bg-[#F9F7F4] p-6 lg:p-8 rounded-xl border border-[#E8E2DA] md:block ${isFilterOpen ? 'block' : 'hidden'}`}>
         <div>
-          <h3 className="text-xs font-bold text-[#8C7E6F] uppercase tracking-wider mb-4">Categorías</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xs font-bold text-[#8C7E6F] uppercase tracking-wider">Categorías</h3>
+            <button
+              onClick={() => setIsFilterOpen(false)}
+              className="md:hidden bg-[#8B4513] hover:bg-[#6b350e] text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-colors"
+            >
+              Aplicar
+            </button>
+          </div>
           <div className="flex flex-col gap-2">
             {categories.map(cat => (
               <label key={cat} className="flex items-center gap-3 text-sm cursor-pointer group">
@@ -169,8 +177,10 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {loading ? (
             Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-white rounded-2xl overflow-hidden border border-[#E8E2DA] shadow-sm flex flex-col h-full min-h-[300px]">
-                <div className="h-32 sm:h-40 bg-[#E8E2DA]"></div>
+              <div key={i} className="animate-pulse bg-white rounded-2xl overflow-hidden border border-[#C0B4A5] border-b-[6px] border-b-[#A6998A] border-l-[6px] border-l-[#D1C7BC] shadow-[0_6px_24px_rgba(139,69,19,0.03)] flex flex-col h-full min-h-[300px]">
+                <div className="h-32 sm:h-40 bg-[#E8E2DA] relative border-b-2 border-[#D1C7BC]">
+                   <div className="absolute inset-0 ring-1 ring-inset ring-black/10 z-20 pointer-events-none"></div>
+                </div>
                 <div className="p-5 flex flex-col flex-1 gap-4">
                   <div className="h-5 bg-[#E8E2DA] rounded w-3/4"></div>
                   <div className="h-3 bg-[#E8E2DA] rounded w-full"></div>
@@ -186,9 +196,10 @@ export default function Home() {
               No se encontraron ofertas que coincidan con tu búsqueda.
             </div>
           ) : currentJobs.map(job => (
-            <Link key={job.id} to={`/jobs/${job.id}`} className="group bg-white rounded-2xl overflow-hidden border border-[#E8E2DA] shadow-sm hover:shadow-md transition-shadow flex flex-col h-full outline-none focus-within:border-[#8B4513]">
-              <div className="h-32 sm:h-40 w-full overflow-hidden bg-[#D1C7BC] relative">
-                <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <Link key={job.id} to={`/jobs/${job.id}`} className="group bg-white rounded-2xl overflow-hidden border border-[#C0B4A5] border-b-[6px] border-b-[#A6998A] border-l-[6px] border-l-[#D1C7BC] shadow-[0_6px_24px_rgba(139,69,19,0.08)] hover:shadow-[0_12px_40px_rgba(139,69,19,0.15)] hover:-translate-y-1 hover:border-b-[#8C7E6F] hover:border-l-[#C0B4A5] transition-all duration-300 flex flex-col h-full outline-none focus-within:border-[#8B4513]">
+              <div className="h-32 sm:h-40 w-full overflow-hidden bg-[#E8E2DA] relative border-b-2 border-[#D1C7BC]">
+                <div className="absolute inset-0 ring-1 ring-inset ring-black/10 z-20 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
                   <span className="text-white bg-black/60 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">Ver Flyer</span>
                 </div>
                 <img 
@@ -209,9 +220,12 @@ export default function Home() {
               </div>
               <div className="p-5 flex flex-col flex-1">
                 <h4 className="font-bold text-[#4A3F35] leading-tight mb-2 line-clamp-2">{job.title}</h4>
-                <p className="text-xs text-[#8C7E6F] mb-4 line-clamp-1">
-                   {job.company || 'Empresa Confidencial'} {job.location && `• ${job.location}`}
-                </p>
+                <div className="text-xs text-[#8C7E6F] mb-4 flex items-center gap-1.5 truncate">
+                  <span className="bg-[#E8E2DA] text-[#4A3F35] font-semibold px-2 py-0.5 rounded-md truncate max-w-[70%]">
+                    {job.company || 'Empresa sin especificar'}
+                  </span>
+                  {job.location && <span className="truncate opacity-80 shrink-0">• {job.location}</span>}
+                </div>
                 <div className="flex justify-between items-center mt-auto">
                   <span className="text-[10px] text-[#A6998A] italic">
                     {(() => {
@@ -223,7 +237,7 @@ export default function Home() {
                       return text;
                     })()}
                   </span>
-                  <span className="text-[#8B4513] text-xs font-bold group-hover:underline">Postularse →</span>
+                  <span className="bg-[#8B4513] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm group-hover:bg-[#6A340E] group-hover:shadow transition-all">Postularse →</span>
                 </div>
               </div>
             </Link>

@@ -13,6 +13,7 @@ export default function JobDetails() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     if (id) {
       getJob(id).then(j => {
         setJob({
@@ -113,12 +114,10 @@ export default function JobDetails() {
           </div>
 
           <div className="flex flex-wrap gap-y-3 gap-x-6 text-sm text-[#6B5E4F] mb-8">
-            {job.company && (
-              <div className="flex items-center gap-2">
-                <Building size={18} className="text-[#8C7E6F]" />
-                <span className="font-semibold text-[#4A3F35]">{job.company}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Building size={18} className="text-[#8C7E6F]" />
+              <span className="font-semibold text-[#4A3F35]">{job.company || 'Empresa sin especificar'}</span>
+            </div>
             {job.location && (
               <div className="flex items-center gap-2">
                 <MapPin size={18} className="text-[#8C7E6F]" />

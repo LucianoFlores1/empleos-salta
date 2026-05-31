@@ -17,7 +17,7 @@ function Layout() {
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <div className="w-12 h-12 overflow-hidden shrink-0 flex items-center justify-center">
-              <img src="/logo.png" alt="Empleos Salta Logo" className="w-full h-full object-contain" />
+              <img src="/logo.webp" alt="Empleos Salta Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-[#4A3F35]">EMPLEOS SALTA</h1>
