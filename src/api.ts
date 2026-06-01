@@ -97,16 +97,67 @@ export const deleteJob = async (id: string): Promise<void> => {
   }
 }
 
-export const importJobs = async (mode: 'replace' | 'merge', data: any[]) => {
+export const importJobs = async (mode: 'replace' | 'merge', data: any[], useAI: boolean = true) => {
   try {
-    const preparedData = data.map(item => ({
-       ...item,
-       createdAt: item.date 
-          ? (item.date.includes('T') ? new Date(item.date).toISOString() : new Date(`${item.date}T12:00:00Z`).toISOString()) 
-          : (item.createdAt || new Date().toISOString()),
-       id: item.id || generateId(),
-       category: item.category || inferCategory(item.title)
-    }));
+    // 1. Get existing IDs so we don't add duplicates
+    const snap = await getDocs(collection(db, 'jobs'));
+    const existingIds = new Set(snap.docs.map(doc => doc.id));
+    
+    // Filter out jobs that already exist
+    const newItems = data.filter(item => {
+      // If the item doesn't have an ID, we keep it and generate one later
+      if (!item.id) return true;
+      return !existingIds.has(item.id);
+    });
+
+    if (newItems.length === 0) {
+      return { success: true, count: 0, message: "No hay ofertas nuevas." };
+    }
+
+    // 2. Enhance them using our server-side API if requested
+    let enhancedData = newItems;
+    if (useAI) {
+      try {
+        const response = await fetch('/api/enhance-jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobs: newItems })
+        });
+        if (response.ok) {
+          const result = await response.json();
+          enhancedData = result.jobs;
+        } else {
+          console.warn("API de mejora de ofertas falló, usando datos originales.");
+        }
+      } catch (err) {
+        console.error("No se pudo contactar al servidor para mejorar ofertas", err);
+      }
+    }
+
+    const preparedData = enhancedData.map(item => {
+      let parsedDate = item.createdAt || new Date().toISOString();
+      if (item.date) {
+        try {
+          const d1 = new Date(item.date.includes('T') ? item.date : `${item.date}T12:00:00Z`);
+          if (!isNaN(d1.getTime())) {
+            parsedDate = d1.toISOString();
+          } else {
+            const d2 = new Date(item.date);
+            if (!isNaN(d2.getTime())) {
+              parsedDate = d2.toISOString();
+            }
+          }
+        } catch (e) {
+          console.warn("Invalid date format", item.date);
+        }
+      }
+      return {
+        ...item,
+        createdAt: parsedDate,
+        id: item.id || generateId(),
+        category: item.category || inferCategory(item.title)
+      };
+    });
     
     // Batch writes (max 500 per batch)
     // For simplicity, we just use multiple batches if needed.
@@ -145,5 +196,24 @@ export const bulkUpdateJobsCategory = async (ids: string[], category: string): P
     }
   } catch (error) {
     return handleFirestoreError(error, OperationType.UPDATE, 'jobs') as any;
+  }
+}
+
+export const bulkDeleteJobs = async (ids: string[]): Promise<void> => {
+  try {
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += 400) {
+      chunks.push(ids.slice(i, i + 400));
+    }
+    
+    for (const chunk of chunks) {
+      const batch = writeBatch(db);
+      for (const id of chunk) {
+        batch.delete(doc(db, 'jobs', id));
+      }
+      await batch.commit();
+    }
+  } catch (error) {
+    return handleFirestoreError(error, OperationType.DELETE, 'jobs') as any;
   }
 }

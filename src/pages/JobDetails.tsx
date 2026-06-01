@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import { motion } from 'motion/react';
 import { Job } from '../types';
 import { getJob } from '../api';
 import { inferCategory, formatRelativeDate } from '../utils';
-import { ArrowLeft, MapPin, Building, Calendar, Share2, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, MapPin, Building, Calendar, Share2, ExternalLink, Image as ImageIcon, Edit2 } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import JobEditModal from '../components/JobEditModal';
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -11,6 +16,16 @@ export default function JobDetails() {
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, user => {
+      setIsAdmin(!!user);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -74,7 +89,53 @@ export default function JobDetails() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="max-w-5xl mx-auto"
+    >
+      <Helmet>
+        <title>{job.title} | Empleos Salta</title>
+        <meta name="description" content={`Oferta laboral en Salta: ${job.title}. ${job.company ? 'Empresa: ' + job.company + '.' : ''} postúlate ahora.`} />
+        <meta property="og:title" content={`${job.title} | Empleos Salta`} />
+        <meta property="og:description" content={`Oferta laboral en Salta: ${job.title}. ${job.company ? 'Empresa: ' + job.company + '.' : ''} postúlate ahora.`} />
+        <meta property="og:image" content={`https://drive.google.com/thumbnail?id=${job.id}&sz=w1200`} />
+        <meta property="og:url" content={window.location.href} />
+        <meta name="twitter:title" content={`${job.title} | Empleos Salta`} />
+        <meta name="twitter:description" content={`Oferta laboral en Salta: ${job.title}. ${job.company ? 'Empresa: ' + job.company + '.' : ''} postúlate ahora.`} />
+        <meta name="twitter:image" content={`https://drive.google.com/thumbnail?id=${job.id}&sz=w1200`} />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org/",
+            "@type": "JobPosting",
+            "title": job.title,
+            "description": job.description || 'Consulta el flyer para más detalles.',
+            "identifier": {
+              "@type": "PropertyValue",
+              "name": job.company || "Empresa Confidencial",
+              "value": job.id
+            },
+            "datePosted": job.date || job.createdAt || new Date().toISOString(),
+            "validThrough": new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            "employmentType": "FULL_TIME",
+            "hiringOrganization": {
+              "@type": "Organization",
+              "name": job.company || "Empresa Confidencial"
+            },
+            "jobLocation": {
+              "@type": "Place",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": job.location || "Salta",
+                "addressRegion": "Salta",
+                "addressCountry": "AR"
+              }
+            }
+          })}
+        </script>
+      </Helmet>
+
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-[#8C7E6F] hover:text-[#4A3F35] mb-6 transition-colors font-medium">
         <ArrowLeft size={16} /> Volver
       </button>
@@ -90,7 +151,17 @@ export default function JobDetails() {
               className="w-full h-auto object-contain rounded-xl shadow-md border border-[#E8E2DA] transition-transform group-hover:scale-[1.02] duration-300"
               referrerPolicy="no-referrer"
               onError={(e) => {
-                e.currentTarget.style.display = 'none';
+                const target = e.currentTarget;
+                target.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.className = 'w-full h-full min-h-[300px] flex items-center justify-center bg-[#F9F7F4] p-8 rounded-xl shadow-inner border border-[#E8E2DA]';
+                fallback.innerHTML = `
+                  <div class="bg-[#FFF9E6] w-3/4 max-w-[250px] aspect-square flex flex-col items-center justify-center text-center shadow-lg rotate-3 relative border border-[#E8D099]">
+                    <div class="w-4 h-4 rounded-full bg-red-600 absolute -top-2 shadow-[0_3px_6px_rgba(0,0,0,0.5)] z-10"></div>
+                    <span class="text-2xl font-black text-[#8B4513] uppercase tracking-widest leading-tight">Oferta<br/>Obsoleta</span>
+                  </div>
+                `;
+                target.parentElement?.insertBefore(fallback, target);
               }}
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center pointer-events-none">
@@ -108,9 +179,16 @@ export default function JobDetails() {
               {job.category && <span className="text-[10px] uppercase font-bold tracking-widest bg-[#8B4513] text-white w-max px-2 py-0.5 rounded shadow-sm mb-3 inline-block">{job.category}</span>}
               <h1 className="text-2xl sm:text-3xl font-extrabold text-[#4A3F35] leading-tight">{job.title}</h1>
             </div>
-            <button onClick={handleShare} className="p-2 text-[#8C7E6F] hover:text-[#8B4513] hover:bg-[#E8E2DA] rounded-lg transition-colors shrink-0" title="Compartir">
-              <Share2 size={24} />
-            </button>
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <button onClick={() => setIsEditing(true)} className="p-2 text-[#8B4513] hover:text-[#6b350e] hover:bg-[#E8E2DA] rounded-lg transition-colors shrink-0" title="Editar oferta">
+                  <Edit2 size={24} />
+                </button>
+              )}
+              <button onClick={handleShare} className="p-2 text-[#8C7E6F] hover:text-[#8B4513] hover:bg-[#E8E2DA] rounded-lg transition-colors shrink-0" title="Compartir">
+                <Share2 size={24} />
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-y-3 gap-x-6 text-sm text-[#6B5E4F] mb-8">
@@ -172,6 +250,16 @@ export default function JobDetails() {
           </div>
         </div>
       </div>
-    </div>
+      
+      {isEditing && (
+        <JobEditModal 
+          job={job} 
+          onClose={() => setIsEditing(false)} 
+          onSave={(updatedJob) => {
+             setJob(updatedJob);
+          }} 
+        />
+      )}
+    </motion.div>
   );
 }

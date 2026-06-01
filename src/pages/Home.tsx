@@ -1,9 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import { motion, AnimatePresence } from 'motion/react';
 import { Job } from '../types';
 import { getJobs } from '../api';
 import { inferCategory, CATEGORIES, formatRelativeDate } from '../utils';
-import { Search, MapPin, Building, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Search, MapPin, Building, ChevronLeft, ChevronRight, Filter, Edit2, Grid, List } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import JobEditModal from '../components/JobEditModal';
 
 export default function Home() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -11,12 +16,23 @@ export default function Home() {
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [dateFilter, setDateFilter] = useState<'all'|'3days'|'7days'|'30days'>('all');
   const [sort, setSort] = useState<'recent' | 'relevant' | 'az'>('recent');
+  const [viewMode, setViewMode] = useState<'default' | 'compact'>('default');
   const [page, setPage] = useState(1);
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInput, setPageInput] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const ITEMS_PER_PAGE = 12;
+
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, user => {
+      setIsAdmin(!!user);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -92,8 +108,18 @@ export default function Home() {
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
+      <Helmet>
+        <title>Empleos Salta | Todas las Ofertas Laborales</title>
+        <meta name="description" content="Descubrí las mejores ofertas de empleo y oportunidades laborales en Salta Capital y el interior." />
+      </Helmet>
+
       {/* Sidebar Filters */}
-      <aside className={`w-full md:w-72 shrink-0 flex flex-col gap-8 bg-[#F9F7F4] p-6 lg:p-8 rounded-xl border border-[#E8E2DA] md:block ${isFilterOpen ? 'block' : 'hidden'}`}>
+      <motion.aside 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className={`w-full md:w-72 shrink-0 flex flex-col gap-8 bg-[#F9F7F4] p-6 lg:p-8 rounded-xl border border-[#E8E2DA] md:block ${isFilterOpen ? 'block' : 'hidden'}`}
+      >
         <div>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xs font-bold text-[#8C7E6F] uppercase tracking-wider">Categorías</h3>
@@ -130,7 +156,7 @@ export default function Home() {
             <button onClick={() => { setDateFilter('30days'); setPage(1); }} className={`w-full text-left py-2 px-3 text-sm rounded-lg transition-colors ${dateFilter === '30days' ? 'bg-[#E8E2DA] text-[#4A3F35] font-medium' : 'text-[#6B5E4F] hover:bg-[#E8E2DA]'}`}>Últimos 30 días</button>
           </div>
         </div>
-      </aside>
+      </motion.aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col gap-6">
@@ -157,6 +183,32 @@ export default function Home() {
             >
               <Filter size={18} />
             </button>
+            <div className="flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-[#E8E2DA] items-center md:flex min-w-max hidden sm:flex">
+              <button 
+                onClick={() => setViewMode('default')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'default' ? 'bg-[#E8E2DA] text-[#4A3F35]' : 'text-[#8C7E6F] hover:bg-[#F9F7F4]'}`}
+                title="Lista"
+              >
+                <List size={18} />
+              </button>
+              <button 
+                onClick={() => setViewMode('compact')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'compact' ? 'bg-[#E8E2DA] text-[#4A3F35]' : 'text-[#8C7E6F] hover:bg-[#F9F7F4]'}`}
+                title="Cuadrícula"
+              >
+                <Grid size={18} />
+              </button>
+            </div>
+            {/* View Mode Toggle Mobile */}
+            <div className="flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-[#E8E2DA] sm:hidden">
+              <button 
+                onClick={() => setViewMode(viewMode === 'default' ? 'compact' : 'default')}
+                className="p-2 text-[#4A3F35] bg-[#E8E2DA] rounded-lg"
+              >
+                {viewMode === 'default' ? <Grid size={18} /> : <List size={18} />}
+              </button>
+            </div>
+            
             <div className="flex gap-1 bg-[#E8E2DA] p-1 rounded-xl shadow-inner w-full sm:w-auto border border-[#E8E2DA]">
               <button 
                 onClick={() => setSort('recent')}
@@ -174,33 +226,77 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div 
+          layout
+          className={`grid gap-4 sm:gap-6 ${
+            viewMode === 'compact' 
+              ? 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+              : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+          }`}
+        >
+          <AnimatePresence mode="popLayout">
           {loading ? (
             Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-white rounded-2xl overflow-hidden border border-[#C0B4A5] border-b-[6px] border-b-[#A6998A] border-l-[6px] border-l-[#D1C7BC] shadow-[0_6px_24px_rgba(139,69,19,0.03)] flex flex-col h-full min-h-[300px]">
-                <div className="h-32 sm:h-40 bg-[#E8E2DA] relative border-b-2 border-[#D1C7BC]">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+                key={`skeleton-${i}`} 
+                className="animate-pulse bg-white rounded-2xl overflow-hidden border border-[#C0B4A5] border-b-[6px] border-b-[#A6998A] border-l-[6px] border-l-[#D1C7BC] shadow-[0_6px_24px_rgba(139,69,19,0.03)] flex flex-col h-full"
+              >
+                <div className={`${viewMode === 'compact' ? 'h-24 sm:h-32' : 'h-32 sm:h-40'} bg-[#E8E2DA] relative border-b-2 border-[#D1C7BC]`}>
                    <div className="absolute inset-0 ring-1 ring-inset ring-black/10 z-20 pointer-events-none"></div>
                 </div>
-                <div className="p-5 flex flex-col flex-1 gap-4">
-                  <div className="h-5 bg-[#E8E2DA] rounded w-3/4"></div>
-                  <div className="h-3 bg-[#E8E2DA] rounded w-full"></div>
-                  <div className="mt-auto flex justify-between items-center">
+                <div className={`${viewMode === 'compact' ? 'p-3' : 'p-5'} flex flex-col flex-1`}>
+                  <div className="h-4 bg-[#E8E2DA] rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-[#E8E2DA] rounded w-1/2 mb-4"></div>
+                  <div className="h-3 bg-[#E8E2DA] rounded w-4/5 mb-4"></div>
+                  <div className="mt-auto flex justify-between items-end border-t border-[#E8E2DA]/50 pt-3">
                     <div className="h-4 bg-[#E8E2DA] rounded w-1/3"></div>
-                    <div className="h-4 bg-[#E8E2DA] rounded w-1/4"></div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))
           ) : currentJobs.length === 0 ? (
-            <div className="col-span-full py-16 text-center text-[#8C7E6F] bg-[#F9F7F4] rounded-2xl border border-dashed border-[#E8E2DA]">
+            <motion.div 
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="col-span-full py-16 text-center text-[#8C7E6F] bg-[#F9F7F4] rounded-2xl border border-dashed border-[#E8E2DA]"
+            >
               No se encontraron ofertas que coincidan con tu búsqueda.
-            </div>
-          ) : currentJobs.map(job => (
-            <Link key={job.id} to={`/jobs/${job.id}`} className="group bg-white rounded-2xl overflow-hidden border border-[#C0B4A5] border-b-[6px] border-b-[#A6998A] border-l-[6px] border-l-[#D1C7BC] shadow-[0_6px_24px_rgba(139,69,19,0.08)] hover:shadow-[0_12px_40px_rgba(139,69,19,0.15)] hover:-translate-y-1 hover:border-b-[#8C7E6F] hover:border-l-[#C0B4A5] transition-all duration-300 flex flex-col h-full outline-none focus-within:border-[#8B4513]">
-              <div className="h-32 sm:h-40 w-full overflow-hidden bg-[#E8E2DA] relative border-b-2 border-[#D1C7BC]">
+            </motion.div>
+          ) : currentJobs.map((job, index) => (
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-20px" }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
+              key={job.id}
+              className="h-full"
+            >
+            <Link to={`/jobs/${job.id}`} className="group bg-white rounded-2xl overflow-hidden border border-[#C0B4A5] border-b-[6px] border-b-[#A6998A] border-l-[6px] border-l-[#D1C7BC] shadow-[0_6px_24px_rgba(139,69,19,0.08)] hover:shadow-[0_12px_40px_rgba(139,69,19,0.15)] hover:-translate-y-1 hover:border-b-[#8C7E6F] hover:border-l-[#C0B4A5] transition-all duration-300 flex flex-col h-full outline-none focus-within:border-[#8B4513]">
+              <div className={`${viewMode === 'compact' ? 'h-24 sm:h-32' : 'h-32 sm:h-40'} w-full overflow-hidden bg-[#E8E2DA] relative border-b-2 border-[#D1C7BC]`}>
                 <div className="absolute inset-0 ring-1 ring-inset ring-black/10 z-20 pointer-events-none"></div>
                 <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
                   <span className="text-white bg-black/60 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">Ver Flyer</span>
+                  {isAdmin && (
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setEditingJob(job);
+                      }}
+                      className="absolute top-2 right-2 bg-white/90 hover:bg-white text-[#8B4513] p-2 rounded-lg shadow backdrop-blur-sm transition-all"
+                      title="Editar oferta"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  )}
                 </div>
                 <img 
                   src={`https://drive.google.com/thumbnail?id=${job.id}&sz=w400`} 
@@ -209,25 +305,33 @@ export default function Home() {
                   loading="lazy"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.parentElement!.classList.add('flex', 'items-center', 'justify-center', 'bg-[#D1C7BC]');
-                    e.currentTarget.parentElement!.innerHTML = '<div class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"><span class="text-white bg-black/60 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">Ver Flyer</span></div>';
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className = 'absolute inset-0 w-full h-full flex items-center justify-center bg-[#F9F7F4] p-4 pointer-events-none';
+                    fallback.innerHTML = `
+                      <div class="bg-[#FFF9E6] w-3/4 max-w-[140px] aspect-square flex flex-col items-center justify-center text-center shadow-md rotate-2 relative border border-[#E8D099]">
+                        <div class="w-3 h-3 rounded-full bg-red-600 absolute -top-1.5 shadow-[0_2px_4px_rgba(0,0,0,0.4)]"></div>
+                        <span class="text-sm font-black text-[#8B4513] ${viewMode === 'compact' ? 'scale-75' : ''} uppercase tracking-wider leading-tight">Oferta<br/>Obsoleta</span>
+                      </div>
+                    `;
+                    target.parentElement?.insertBefore(fallback, target);
                   }}
                 />
                 <div className="absolute inset-x-0 bottom-0 p-4 flex flex-col justify-end text-white bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none z-0">
-                  {job.category && <span className="text-[10px] uppercase font-bold tracking-widest bg-[#8B4513] w-max px-2 py-0.5 rounded shadow-sm relative z-10">{job.category}</span>}
+                  {job.category && <span className={`text-[10px] uppercase font-bold tracking-widest bg-[#8B4513] w-max rounded shadow-sm relative z-10 ${viewMode === 'compact' ? 'px-1.5 py-0.5 scale-90 origin-bottom-left' : 'px-2 py-0.5'}`}>{job.category}</span>}
                 </div>
               </div>
-              <div className="p-5 flex flex-col flex-1">
-                <h4 className="font-bold text-[#4A3F35] leading-tight mb-2 line-clamp-2">{job.title}</h4>
-                <div className="text-xs text-[#8C7E6F] mb-4 flex items-center gap-1.5 truncate">
+              <div className={`${viewMode === 'compact' ? 'p-3' : 'p-5'} flex flex-col flex-1`}>
+                <h4 className={`${viewMode === 'compact' ? 'text-sm font-bold' : 'font-bold'} text-[#4A3F35] leading-tight mb-2 line-clamp-2`}>{job.title}</h4>
+                <div className={`text-xs text-[#8C7E6F] mb-4 flex items-center gap-1.5 truncate ${viewMode === 'compact' ? 'scale-90 origin-left' : ''}`}>
                   <span className="bg-[#E8E2DA] text-[#4A3F35] font-semibold px-2 py-0.5 rounded-md truncate max-w-[70%]">
                     {job.company || 'Empresa sin especificar'}
                   </span>
                   {job.location && <span className="truncate opacity-80 shrink-0">• {job.location}</span>}
                 </div>
                 <div className="flex justify-between items-center mt-auto">
-                  <span className="text-[10px] text-[#A6998A] italic">
+                  <span className={`italic ${viewMode === 'compact' ? 'text-[9px]' : 'text-[10px]'} text-[#A6998A]`}>
                     {(() => {
                       const dateStr = job.date || job.createdAt;
                       const { text, type } = formatRelativeDate(dateStr, !!job.date);
@@ -237,12 +341,14 @@ export default function Home() {
                       return text;
                     })()}
                   </span>
-                  <span className="bg-[#8B4513] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm group-hover:bg-[#6A340E] group-hover:shadow transition-all">Postularse →</span>
+                  <span className={`bg-[#8B4513] text-white font-bold rounded-lg shadow-sm group-hover:bg-[#6A340E] group-hover:shadow transition-all ${viewMode === 'compact' ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'}`}>{viewMode === 'compact' ? 'Ir →' : 'Postularse →'}</span>
                 </div>
               </div>
             </Link>
+            </motion.div>
           ))}
-        </div>
+          </AnimatePresence>
+        </motion.div>
 
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-8 pt-6 border-t border-[#E8E2DA]">
@@ -288,6 +394,16 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {editingJob && (
+        <JobEditModal 
+          job={editingJob} 
+          onClose={() => setEditingJob(null)} 
+          onSave={(updatedJob) => {
+            setJobs(jobs.map(j => j.id === updatedJob.id ? updatedJob : j));
+          }} 
+        />
+      )}
     </div>
   );
 }

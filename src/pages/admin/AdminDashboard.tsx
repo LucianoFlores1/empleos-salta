@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Job } from '../../types';
-import { getJobs, deleteJob, importJobs, createJob, updateJob, bulkUpdateJobsCategory } from '../../api';
+import { getJobs, deleteJob, importJobs, createJob, updateJob, bulkUpdateJobsCategory, bulkDeleteJobs } from '../../api';
 import { inferCategory, CATEGORIES } from '../../utils';
-import { Plus, Upload, Trash2, Edit, LogOut, CheckCircle2, AlertCircle, RefreshCw, FolderTree } from 'lucide-react';
+import { Plus, Upload, Trash2, Edit, LogOut, CheckCircle2, AlertCircle, RefreshCw, FolderTree, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
 import { auth, logout } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -13,16 +13,24 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<{type: 'success'|'error', text: string} | null>(null);
 
-  // Filters & Selection
+  // Filters & Selection & Sorting
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState<string>('');
   const [isUpdatingBulk, setIsUpdatingBulk] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [isImporting, setIsImporting] = useState(false);
+  const [useAIForImport, setUseAIForImport] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragAction, setDragAction] = useState<boolean | null>(null);
 
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Job>>({});
+
+  // Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState<{isOpen: boolean, message: string, onConfirm: () => void} | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -35,6 +43,15 @@ export default function AdminDashboard() {
     return () => unsub();
   }, [navigate]);
 
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsDragging(false);
+      setDragAction(null);
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
+
   const loadData = () => {
     setLoading(true);
     getJobs().then(fetchedJobs => {
@@ -42,8 +59,6 @@ export default function AdminDashboard() {
         ...j,
         category: j.category || inferCategory(j.title),
       }));
-      // Sort newest first
-      enrichedJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setJobs(enrichedJobs);
       setSelectedIds(new Set());
     }).finally(() => setLoading(false));
@@ -60,34 +75,46 @@ export default function AdminDashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('¿Seguro que deseas eliminar esta oferta?')) {
-      try {
-        await deleteJob(id);
-        showMsg('success', 'Oferta eliminada correctamente');
-        loadData();
-      } catch (e: any) {
-        showMsg('error', e.message);
+    setConfirmDialog({
+      isOpen: true,
+      message: '¿Seguro que deseas eliminar esta oferta?',
+      onConfirm: async () => {
+        try {
+          await deleteJob(id);
+          showMsg('success', 'Oferta eliminada correctamente');
+          loadData();
+        } catch (e: any) {
+          showMsg('error', e.message);
+        }
       }
-    }
+    });
   };
 
   const handleJsonUpload = (e: React.ChangeEvent<HTMLInputElement>, mode: 'replace' | 'merge') => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
+    setIsImporting(true);
     reader.onload = async (ev) => {
       try {
         const text = ev.target?.result as string;
         const data = JSON.parse(text);
         if (!Array.isArray(data)) throw new Error('El JSON debe ser un array de objetos');
         
-        await importJobs(mode, data);
-        showMsg('success', `Datos importados exitosamente (${data.length} ítems)`);
+        const result = await importJobs(mode, data, useAIForImport);
+        if (result.count === 0 && result.message) {
+          showMsg('success', result.message);
+        } else {
+          showMsg('success', `Datos importados exitosamente (${result.count} ítems agregados nuevos)`);
+        }
         loadData();
       } catch (err: any) {
         showMsg('error', `Error importando JSON: ${err.message}`);
+      } finally {
+        setIsImporting(false);
       }
     };
+    reader.onerror = () => setIsImporting(false);
     reader.readAsText(file);
     e.target.value = '';
   };
@@ -123,19 +150,43 @@ export default function AdminDashboard() {
 
   const handleBulkCategoryUpdate = async () => {
     if (!bulkCategory || selectedIds.size === 0) return;
-    if (confirm(`¿Mover ${selectedIds.size} oferta(s) a la categoría "${bulkCategory}"?`)) {
-      setIsUpdatingBulk(true);
-      try {
-        await bulkUpdateJobsCategory(Array.from(selectedIds), bulkCategory);
-        showMsg('success', `${selectedIds.size} ofertas recategorizadas`);
-        loadData();
-        setBulkCategory('');
-      } catch (err: any) {
-        showMsg('error', `Error: ${err.message}`);
-      } finally {
-        setIsUpdatingBulk(false);
+    setConfirmDialog({
+      isOpen: true,
+      message: `¿Mover ${selectedIds.size} oferta(s) a la categoría "${bulkCategory}"?`,
+      onConfirm: async () => {
+        setIsUpdatingBulk(true);
+        try {
+          await bulkUpdateJobsCategory(Array.from(selectedIds), bulkCategory);
+          showMsg('success', `${selectedIds.size} ofertas recategorizadas`);
+          loadData();
+          setBulkCategory('');
+        } catch (err: any) {
+          showMsg('error', `Error: ${err.message}`);
+        } finally {
+          setIsUpdatingBulk(false);
+        }
       }
-    }
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setConfirmDialog({
+      isOpen: true,
+      message: `¿Seguro que deseas eliminar ${selectedIds.size} oferta(s)?`,
+      onConfirm: async () => {
+        setIsUpdatingBulk(true);
+        try {
+          await bulkDeleteJobs(Array.from(selectedIds));
+          showMsg('success', `${selectedIds.size} ofertas eliminadas`);
+          loadData();
+        } catch (err: any) {
+          showMsg('error', `Error: ${err.message}`);
+        } finally {
+          setIsUpdatingBulk(false);
+        }
+      }
+    });
   };
 
   const toggleSelectAll = (filteredJobs: Job[]) => {
@@ -156,10 +207,53 @@ export default function AdminDashboard() {
     setSelectedIds(newSelected);
   };
 
+  const handleRowMouseDown = (id: string, e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only left click
+    
+    const target = e.target as HTMLElement;
+    // Don't trigger if clicking buttons or checkboxes directly
+    if (target.closest('button') || target.tagName.toLowerCase() === 'input') {
+      return;
+    }
+
+    const isSelected = selectedIds.has(id);
+    const newAction = !isSelected;
+    
+    setIsDragging(true);
+    setDragAction(newAction);
+
+    const newSelected = new Set(selectedIds);
+    if (newAction) newSelected.add(id);
+    else newSelected.delete(id);
+    setSelectedIds(newSelected);
+  };
+
+  const handleRowMouseEnter = (id: string, e: React.MouseEvent) => {
+    if (isDragging && dragAction !== null) {
+      if (e.buttons !== 1) { // Left mouse button isn't held down anymore
+        setIsDragging(false);
+        setDragAction(null);
+        return;
+      }
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        if (dragAction) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    }
+  };
+
   const filteredJobs = useMemo(() => {
-    if (!categoryFilter) return jobs;
-    return jobs.filter(j => j.category === categoryFilter);
-  }, [jobs, categoryFilter]);
+    let result = jobs;
+    if (categoryFilter) {
+      result = result.filter(j => j.category === categoryFilter);
+    }
+    return result.slice().sort((a, b) => {
+      const diff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return sortOrder === 'desc' ? diff : -diff;
+    });
+  }, [jobs, categoryFilter, sortOrder]);
 
   const uniqueCategories = useMemo(() => {
     return Array.from(new Set(jobs.map(j => j.category))).filter(Boolean).sort();
@@ -199,14 +293,28 @@ export default function AdminDashboard() {
               >
                 <FolderTree size={16} /> Mover
               </button>
+              <button 
+                onClick={handleBulkDelete}
+                disabled={isUpdatingBulk}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#D1BCBC] hover:bg-[#C2A5A5] disabled:bg-gray-200 text-[#5A2D2D] font-medium rounded transition-colors"
+                title="Eliminar seleccionados"
+              >
+                <Trash2 size={16} /> Eliminar
+              </button>
             </div>
           )}
 
           <div className="h-6 w-px bg-[#E8E2DA] hidden sm:block"></div>
 
-          <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E8E2DA] hover:bg-[#D1C7BC] text-[#4A3F35] text-sm font-medium rounded-lg transition-colors border border-transparent whitespace-nowrap">
-            <Upload size={16} /> Importar (Combinar)
-            <input type="file" accept=".json" className="hidden" onChange={(e) => handleJsonUpload(e, 'merge')} />
+          <label className="cursor-pointer inline-flex items-center gap-2 text-sm text-[#4A3F35]" title="Usar IA para autocompletar títulos genéricos de imágenes">
+            <input type="checkbox" checked={useAIForImport} onChange={(e) => setUseAIForImport(e.target.checked)} className="rounded text-[#8B4513] focus:ring-[#8B4513]" />
+            Usar IA
+          </label>
+
+          <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E8E2DA] hover:bg-[#D1C7BC] text-[#4A3F35] text-sm font-medium rounded-lg transition-colors border border-transparent whitespace-nowrap ${isImporting ? 'opacity-70 cursor-wait' : ''}`}>
+            {isImporting ? <RefreshCw size={16} className="animate-spin" /> : <Upload size={16} />} 
+            {isImporting ? 'Importando...' : 'Importar (Combinar)'}
+            <input type="file" accept=".json" className="hidden" disabled={isImporting} onChange={(e) => handleJsonUpload(e, 'merge')} />
           </label>
           <button onClick={openNewForm} className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A3F35] hover:bg-[#2D2A26] text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
             <Plus size={16} /> Crear Oferta
@@ -217,7 +325,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap gap-4 items-center">
         <select 
           value={categoryFilter} 
           onChange={(e) => {
@@ -231,6 +339,14 @@ export default function AdminDashboard() {
              <option key={cat} value={cat}>{cat} ({jobs.filter(j => j.category === cat).length})</option>
           ))}
         </select>
+        
+        <button
+          onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+          className="inline-flex items-center gap-2 px-3 py-2 bg-[#F9F7F4] border border-[#E8E2DA] hover:bg-[#E8E2DA] text-[#4A3F35] text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
+        >
+          {sortOrder === 'desc' ? <ArrowDownAZ size={16} /> : <ArrowUpAZ size={16} />}
+          {sortOrder === 'desc' ? 'Más recientes primero' : 'Más antiguas primero'}
+        </button>
       </div>
 
       {loading ? (
@@ -257,12 +373,18 @@ export default function AdminDashboard() {
                 <th className="px-4 py-3">Título</th>
                 <th className="px-4 py-3">Categoría</th>
                 <th className="px-4 py-3">Compañía</th>
+                <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm text-gray-700 bg-white">
               {filteredJobs.map(job => (
-                <tr key={job.id} className={`${selectedIds.has(job.id) ? 'bg-blue-50/50' : 'hover:bg-gray-50/50'}`}>
+                <tr 
+                  key={job.id} 
+                  className={`${selectedIds.has(job.id) ? 'bg-[#D1C7BC]/20' : 'hover:bg-gray-50/50'} select-none transition-colors duration-150`}
+                  onMouseDown={(e) => handleRowMouseDown(job.id, e)}
+                  onMouseEnter={(e) => handleRowMouseEnter(job.id, e)}
+                >
                   <td className="px-4 py-3 text-center">
                     <input 
                       type="checkbox" 
@@ -279,6 +401,9 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   <td className="px-4 py-3">{job.company || '-'}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-gray-500 text-xs">
+                    {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : '-'}
+                  </td>
                   <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                     <button onClick={() => openEditForm(job)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded bg-white border border-gray-200 shadow-sm transition">
                       <Edit size={16} />
@@ -291,7 +416,7 @@ export default function AdminDashboard() {
               ))}
               {filteredJobs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-500">No hay ofertas que coincidan con la búsqueda.</td>
+                  <td colSpan={7} className="text-center py-10 text-gray-500">No hay ofertas que coincidan con la búsqueda.</td>
                 </tr>
               )}
             </tbody>
@@ -346,6 +471,37 @@ export default function AdminDashboard() {
                   <button type="submit" className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">Guardar</button>
                </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Dialog */}
+      {confirmDialog && confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar acción</h3>
+              <p className="text-gray-600">{confirmDialog.message}</p>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+              <button 
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                disabled={isUpdatingBulk}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  confirmDialog.onConfirm();
+                  setConfirmDialog(null);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+                disabled={isUpdatingBulk}
+              >
+                Confirmar
+              </button>
+            </div>
           </div>
         </div>
       )}
