@@ -270,12 +270,11 @@ export default function Home() {
             </motion.div>
           ) : currentJobs.map((job, index) => (
             <motion.div
-              layout
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-20px" }}
+              layout="position"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
+              transition={{ duration: 0.3, delay: (index % 12) * 0.04, ease: "easeOut" }}
               key={job.id}
               className="h-full"
             >
