@@ -226,22 +226,19 @@ export default function Home() {
           </div>
         </div>
 
-        <motion.div 
-          layout
+        <div 
           className={`grid gap-4 sm:gap-6 ${
             viewMode === 'compact' 
               ? 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
               : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
           }`}
         >
-          <AnimatePresence mode="popLayout">
           {loading ? (
-            Array.from({ length: 9 }).map((_, i) => (
+            Array.from({ length: 12 }).map((_, i) => (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.05 }}
+                transition={{ duration: 0.2, delay: i * 0.03 }}
                 key={`skeleton-${i}`} 
                 className="animate-pulse bg-white rounded-2xl overflow-hidden border border-[#C0B4A5] border-b-[6px] border-b-[#A6998A] border-l-[6px] border-l-[#D1C7BC] shadow-[0_6px_24px_rgba(139,69,19,0.03)] flex flex-col h-full"
               >
@@ -259,22 +256,17 @@ export default function Home() {
               </motion.div>
             ))
           ) : currentJobs.length === 0 ? (
-            <motion.div 
+            <div 
               key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               className="col-span-full py-16 text-center text-[#8C7E6F] bg-[#F9F7F4] rounded-2xl border border-dashed border-[#E8E2DA]"
             >
               No se encontraron ofertas que coincidan con tu búsqueda.
-            </motion.div>
+            </div>
           ) : currentJobs.map((job, index) => (
             <motion.div
-              layout="position"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3, delay: (index % 12) * 0.04, ease: "easeOut" }}
+              transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.3), ease: "easeOut" }}
               key={job.id}
               className="h-full"
             >
@@ -346,8 +338,7 @@ export default function Home() {
             </Link>
             </motion.div>
           ))}
-          </AnimatePresence>
-        </motion.div>
+        </div>
 
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-8 pt-6 border-t border-[#E8E2DA]">
