@@ -100,11 +100,11 @@ export default function JobDetails() {
         <meta name="description" content={`Oferta laboral en Salta: ${job.title}. ${job.company ? 'Empresa: ' + job.company + '.' : ''} postúlate ahora.`} />
         <meta property="og:title" content={`${job.title} | Empleos Salta`} />
         <meta property="og:description" content={`Oferta laboral en Salta: ${job.title}. ${job.company ? 'Empresa: ' + job.company + '.' : ''} postúlate ahora.`} />
-        <meta property="og:image" content={`https://drive.google.com/thumbnail?id=${job.id}&sz=w1200`} />
+        <meta property="og:image" content={`https://drive.google.com/thumbnail?id=${job.driveId || job.id}&sz=w1200`} />
         <meta property="og:url" content={window.location.href} />
         <meta name="twitter:title" content={`${job.title} | Empleos Salta`} />
         <meta name="twitter:description" content={`Oferta laboral en Salta: ${job.title}. ${job.company ? 'Empresa: ' + job.company + '.' : ''} postúlate ahora.`} />
-        <meta name="twitter:image" content={`https://drive.google.com/thumbnail?id=${job.id}&sz=w1200`} />
+        <meta name="twitter:image" content={`https://drive.google.com/thumbnail?id=${job.driveId || job.id}&sz=w1200`} />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org/",
@@ -144,9 +144,9 @@ export default function JobDetails() {
         
         {/* Full Image */}
         <div className="w-full md:w-1/2 lg:w-[55%] bg-[#F9F7F4] shrink-0 p-4 sm:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#E8E2DA]">
-          <a href={`https://drive.google.com/uc?export=view&id=${job.id}`} target="_blank" rel="noopener noreferrer" className="relative group w-full max-w-lg mx-auto block">
+          <a href={`https://drive.google.com/uc?export=view&id=${job.driveId || job.id}`} target="_blank" rel="noopener noreferrer" className="relative group w-full max-w-lg mx-auto block">
             <img 
-              src={`https://drive.google.com/thumbnail?id=${job.id}&sz=w1200`} 
+              src={`https://drive.google.com/thumbnail?id=${job.driveId || job.id}&sz=w1200`} 
               alt={job.title}
               className="w-full h-auto object-contain rounded-xl shadow-md border border-[#E8E2DA] transition-transform group-hover:scale-[1.02] duration-300"
               referrerPolicy="no-referrer"

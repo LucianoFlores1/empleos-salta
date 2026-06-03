@@ -1,5 +1,6 @@
 export interface Job {
   id: string;
+  driveId?: string;
   title: string;
   source: string;
   category?: string;

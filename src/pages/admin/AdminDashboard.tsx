@@ -393,7 +393,7 @@ export default function AdminDashboard() {
                       className="rounded border-gray-300 text-[#4A3F35] focus:ring-[#4A3F35]"
                     />
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500 truncate max-w-[120px]" title={job.id}>{job.id}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-500 truncate max-w-[120px]" title={job.driveId || job.id}>{job.driveId || job.id}</td>
                   <td className="px-4 py-3 font-medium text-gray-900 line-clamp-1">{job.title}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
@@ -438,9 +438,9 @@ export default function AdminDashboard() {
                   <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                </div>
                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Drive ID (ID del archivo en drive) *</label>
-                  <input type="text" value={formData.id || ''} onChange={e => setFormData({...formData, id: e.target.value})} disabled={!!editingId} required placeholder="ej: 1wggnirX8..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 font-mono text-sm" />
-                  {!editingId && <p className="text-xs text-gray-500 mt-1">Este ID se usa para obtener la miniatura de Google Drive.</p>}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Drive ID (Imágen/Flyer)</label>
+                  <input type="text" value={formData.driveId || formData.id || ''} onChange={e => setFormData({...formData, driveId: e.target.value})} placeholder="ej: 1iHcgzhyg-nLXS..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm" />
+                  <p className="text-xs text-gray-500 mt-1">ID del archivo en Google Drive para mostrar el flyer.</p>
                </div>
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">URL / Link a Postulación *</label>

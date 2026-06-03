@@ -75,6 +75,11 @@ export default function JobEditModal({ job, onClose, onSave }: JobEditModalProps
               <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B4513] outline-none" />
            </div>
            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Drive ID (Imágen/Flyer)</label>
+              <input type="text" value={formData.driveId || formData.id || ''} onChange={e => setFormData({...formData, driveId: e.target.value})} placeholder="ej: 1iHcgzhyg-nLXS..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B4513] outline-none font-mono text-sm" />
+              <p className="text-xs text-gray-500 mt-1">ID del archivo en Google Drive para mostrar el flyer.</p>
+           </div>
+           <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">URL / Link a Postulación *</label>
               <input type="url" value={formData.source || ''} onChange={e => setFormData({...formData, source: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B4513] outline-none" />
            </div>

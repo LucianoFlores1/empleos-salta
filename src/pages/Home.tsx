@@ -290,7 +290,7 @@ export default function Home() {
                   )}
                 </div>
                 <img 
-                  src={`https://drive.google.com/thumbnail?id=${job.id}&sz=w400`} 
+                  src={`https://drive.google.com/thumbnail?id=${job.driveId || job.id}&sz=w400`} 
                   alt={job.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   loading="lazy"
