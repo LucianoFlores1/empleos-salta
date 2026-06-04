@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/job",
+      "destination": "/api/job.js"
+    },
+    {
+      "source": "/job/(.*)",
+      "destination": "/api/job?id=$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

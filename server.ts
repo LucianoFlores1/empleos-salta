@@ -9,6 +9,22 @@ const PORT = 3000;
 app.use(express.json({ limit: '50mb' }));
 
 // --- API Routes ---
+app.get('/api/job', async (req, res) => {
+  try {
+    const id = req.query.id as string;
+    const fs = require('fs');
+    if (!id) return res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+    
+    // Quick mock for local dev
+    let indexPath = path.join(process.cwd(), 'dist', 'index.html');
+    if (!fs.existsSync(indexPath)) indexPath = path.join(process.cwd(), 'index.html');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.status(200).send(fs.readFileSync(indexPath, 'utf8'));
+  } catch(e) {
+    res.status(500).send("Error");
+  }
+});
+
 app.post('/api/enhance-jobs', async (req, res) => {
   try {
     const { jobs, force } = req.body;

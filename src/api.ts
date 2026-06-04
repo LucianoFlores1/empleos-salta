@@ -43,10 +43,22 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 // Ensure unique random IDs if missing
 const generateId = () => Math.random().toString(36).substring(2, 10);
 
+const CACHE_KEY = 'empleos_salta_jobs_cache';
+const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
 export const getJobs = async (): Promise<Job[]> => {
   try {
+    const cachedData = sessionStorage.getItem(CACHE_KEY);
+    if (cachedData) {
+      const { data, timestamp } = JSON.parse(cachedData);
+      if (Date.now() - timestamp < CACHE_TTL) {
+        return data;
+      }
+    }
     const snap = await getDocs(collection(db, 'jobs'));
-    return snap.docs.map(d => ({ ...d.data(), id: d.id } as Job));
+    const jobs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Job));
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: jobs, timestamp: Date.now() }));
+    return jobs;
   } catch (error) {
     return handleFirestoreError(error, OperationType.LIST, 'jobs') as any;
   }
@@ -62,8 +74,13 @@ export const getJob = async (id: string): Promise<Job> => {
   }
 };
 
+export const clearJobsCache = () => {
+  sessionStorage.removeItem(CACHE_KEY);
+};
+
 // Admin
 export const createJob = async (job: Partial<Job>): Promise<Job> => {
+  clearJobsCache();
   const newJob = {
     ...job,
     createdAt: new Date().toISOString(),
@@ -81,6 +98,7 @@ export const createJob = async (job: Partial<Job>): Promise<Job> => {
 }
 
 export const updateJob = async (id: string, job: Partial<Job>): Promise<Job> => {
+  clearJobsCache();
   try {
     await updateDoc(doc(db, 'jobs', id), job);
     return { id, ...job } as Job;
@@ -90,6 +108,7 @@ export const updateJob = async (id: string, job: Partial<Job>): Promise<Job> => 
 }
 
 export const deleteJob = async (id: string): Promise<void> => {
+  clearJobsCache();
   try {
     await deleteDoc(doc(db, 'jobs', id));
   } catch (error) {
@@ -98,17 +117,17 @@ export const deleteJob = async (id: string): Promise<void> => {
 }
 
 export const importJobs = async (mode: 'replace' | 'merge', data: any[], useAI: boolean = true) => {
+  clearJobsCache();
   try {
     // 1. Get existing IDs so we don't add duplicates
     const snap = await getDocs(collection(db, 'jobs'));
     const existingIds = new Set(snap.docs.map(doc => doc.id));
     
-    // Filter out jobs that already exist
-    const newItems = data.filter(item => {
-      // If the item doesn't have an ID, we keep it and generate one later
-      if (!item.id) return true;
-      return !existingIds.has(item.id);
-    });
+    // Filter out jobs that already exist only if we are not merging/replacing
+    // Actually, mode is always 'merge' or 'replace' here, so we shouldn't filter them out
+    // if the intention is to update existing ones. However, if the user imports the same list twice,
+    // merge will update them which is fine.
+    const newItems = data;
 
     if (newItems.length === 0) {
       return { success: true, count: 0, message: "No hay ofertas nuevas." };
@@ -181,6 +200,7 @@ export const importJobs = async (mode: 'replace' | 'merge', data: any[], useAI: 
 }
 
 export const bulkUpdateJobsCategory = async (ids: string[], category: string): Promise<void> => {
+  clearJobsCache();
   try {
     const chunks = [];
     for (let i = 0; i < ids.length; i += 400) {
@@ -200,6 +220,7 @@ export const bulkUpdateJobsCategory = async (ids: string[], category: string): P
 }
 
 export const bulkDeleteJobs = async (ids: string[]): Promise<void> => {
+  clearJobsCache();
   try {
     const chunks = [];
     for (let i = 0; i < ids.length; i += 400) {
