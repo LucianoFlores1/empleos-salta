@@ -185,6 +185,76 @@ export default function AdminDashboard() {
     });
   };
 
+  const handleReevaluateAllCategories = async () => {
+    let toUpdate = [];
+    for (const job of jobs) {
+       const newCat = inferCategory(job.title);
+       if (newCat !== job.category) {
+         toUpdate.push({ id: job.id, newCat });
+       }
+    }
+
+    if (toUpdate.length === 0) {
+      showMsg('success', 'Todas las ofertas ya tienen la mejor categoría asignada según el título.');
+      return;
+    }
+    
+    setConfirmDialog({
+      isOpen: true,
+      message: `¿Reevaluar y cambiar de categoría ${toUpdate.length} oferta(s) según sus títulos? No afectará fechas.`,
+      onConfirm: async () => {
+        setIsUpdatingBulk(true);
+        let updatedCount = 0;
+        try {
+           for (const update of toUpdate) {
+               await updateJob(update.id, { category: update.newCat });
+               updatedCount++;
+           }
+           showMsg('success', `${updatedCount} ofertas recategorizadas automáticamente.`);
+           loadData();
+        } catch (err: any) {
+           showMsg('error', `Error: ${err.message}`);
+        } finally {
+           setIsUpdatingBulk(false);
+        }
+      }
+    });
+  };
+
+  const handleAutoCategorizeList = async () => {
+    const otrosJobs = jobs.filter(j => j.category === 'Otros');
+    if (otrosJobs.length === 0) {
+      showMsg('success', 'No hay ofertas en "Otros" para recategorizar.');
+      return;
+    }
+    
+    setConfirmDialog({
+      isOpen: true,
+      message: `¿Auto-recategorizar ${otrosJobs.length} ofertas marcadas como "Otros"?`,
+      onConfirm: async () => {
+        setIsUpdatingBulk(true);
+        let updatedCount = 0;
+        try {
+           const updates = otrosJobs.map(job => {
+             const newCat = inferCategory(job.title);
+             if (newCat !== 'Otros') {
+               updatedCount++;
+               return updateJob(job.id, { category: newCat });
+             }
+             return Promise.resolve();
+           });
+           await Promise.all(updates);
+           showMsg('success', `${updatedCount} ofertas recategorizadas automáticamente.`);
+           loadData();
+        } catch (err: any) {
+           showMsg('error', `Error: ${err.message}`);
+        } finally {
+           setIsUpdatingBulk(false);
+        }
+      }
+    });
+  };
+
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
     setConfirmDialog({
@@ -381,6 +451,14 @@ export default function AdminDashboard() {
         >
           <AlertCircle size={16} />
           Seleccionar Obsoletas
+        </button>
+        <button
+          onClick={handleAutoCategorizeList}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors w-full sm:w-auto bg-blue-100/50 hover:bg-blue-100 text-blue-800 border border-blue-200"
+          title="Recategorizar masivamente todas las ofertas que están en la categoría 'Otros'"
+        >
+          <RefreshCw size={16} />
+          Autocategorizar 'Otros'
         </button>
       </div>
 

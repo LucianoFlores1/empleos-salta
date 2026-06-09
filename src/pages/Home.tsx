@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Job } from '../types';
 import { getJobs, deleteJob } from '../api';
 import { inferCategory, CATEGORIES, formatRelativeDate } from '../utils';
-import { Search, MapPin, Building, ChevronLeft, ChevronRight, Filter, Edit2, Grid, List, Trash2 } from 'lucide-react';
+import { Search, MapPin, Building, ChevronLeft, ChevronRight, Filter, Edit2, Grid, List, Trash2, X } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import JobEditModal from '../components/JobEditModal';
@@ -134,6 +134,15 @@ export default function Home() {
     setPage(1);
   };
 
+  const handleClearFilters = () => {
+    setCategoryFilter([]);
+    setDateFilter('all');
+    setSearch('');
+    setPage(1);
+  };
+
+  const activeFiltersCount = categoryFilter.length + (dateFilter !== 'all' ? 1 : 0) + (search ? 1 : 0);
+
   return (
     <div className="flex flex-col md:flex-row gap-8">
       <Helmet>
@@ -146,8 +155,9 @@ export default function Home() {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`w-full md:w-72 shrink-0 flex flex-col gap-8 bg-[#F9F7F4] p-6 lg:p-8 rounded-xl border border-[#E8E2DA] md:block ${isFilterOpen ? 'block' : 'hidden'}`}
+        className={`w-full md:w-72 shrink-0 overflow-hidden transition-all duration-300 ease-in-out md:max-h-none md:opacity-100 md:mt-0 md:mb-0 ${isFilterOpen ? 'max-h-[1200px] opacity-100 mt-4 mb-4' : 'max-h-0 opacity-0'}`}
       >
+        <div className="flex flex-col gap-8 bg-[#F9F7F4] p-6 lg:p-8 rounded-xl border border-[#E8E2DA]">
         <div>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xs font-bold text-[#8C7E6F] uppercase tracking-wider">Categorías</h3>
@@ -184,44 +194,71 @@ export default function Home() {
             <button onClick={() => { setDateFilter('30days'); setPage(1); }} className={`w-full text-left py-2 px-3 text-sm rounded-lg transition-colors ${dateFilter === '30days' ? 'bg-[#E8E2DA] text-[#4A3F35] font-medium' : 'text-[#6B5E4F] hover:bg-[#E8E2DA]'}`}>Últimos 30 días</button>
           </div>
         </div>
+        </div>
       </motion.aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between mb-2">
-          <div className="flex-1 w-full max-w-lg">
-             <div className="relative">
+        <div className="flex flex-col gap-4 mb-2">
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-start w-full">
+            <div className="w-full max-w-[320px] sm:max-w-[400px] relative">
               <input 
                 type="text" 
                 placeholder="Buscar empleo (ej. Administracion, Abogado)..." 
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="w-full pl-4 pr-10 py-3 bg-white border border-[#E8E2DA] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#8B4513] focus:border-transparent transition-all shadow-sm text-[#2D2A26] placeholder-[#A6998A]"
+                className="w-full pl-4 pr-10 h-[46px] bg-white border border-[#E8E2DA] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#8B4513] focus:border-transparent transition-all shadow-sm text-[#2D2A26] placeholder-[#A6998A]"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8C7E6F]">
                 <Search size={18} />
               </div>
-             </div>
-             <p className="text-[#8C7E6F] text-sm mt-3 hidden sm:block">Mostrando {currentJobs.length} de {filteredJobs.length} resultados encontrados</p>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto justify-end">
-            <button 
-              className="md:hidden flex items-center justify-center p-3 bg-white rounded-xl border border-[#E8E2DA] text-[#6B5E4F] shadow-sm"
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-            >
-              <Filter size={18} />
-            </button>
-            <div className="flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-[#E8E2DA] items-center md:flex min-w-max hidden sm:flex">
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto items-center shrink-0">
+            <div className="relative md:hidden shrink-0">
+              <button 
+                className="flex items-center justify-center w-[46px] h-[46px] bg-white rounded-xl border border-[#E8E2DA] text-[#6B5E4F] shadow-sm"
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+              >
+                <Filter size={18} />
+                {activeFiltersCount > 0 && (
+                   <span className="absolute -top-2 -right-2 bg-[#8B4513] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#FDFCFB]">
+                     {activeFiltersCount}
+                   </span>
+                )}
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {activeFiltersCount > 0 && (
+                <motion.div
+                   initial={{ opacity: 0, scale: 0.9, width: 0 }}
+                   animate={{ opacity: 1, scale: 1, width: 'auto' }}
+                   exit={{ opacity: 0, scale: 0.9, width: 0 }}
+                   className="overflow-hidden shrink-0"
+                >
+                  <button 
+                     onClick={handleClearFilters}
+                     className="flex items-center gap-1 h-[46px] w-max px-3 bg-red-50 text-red-600 rounded-lg border border-red-100 text-xs font-semibold hover:bg-red-100 transition-colors"
+                  >
+                    <X size={14} />
+                    <span className="hidden sm:inline">Limpiar</span>
+                    <span className="bg-red-100 px-1.5 py-0.5 rounded-md ml-1">{activeFiltersCount}</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            <div className="flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-[#E8E2DA] items-center md:flex min-w-max hidden sm:flex h-[46px]">
               <button 
                 onClick={() => setViewMode('default')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'default' ? 'bg-[#E8E2DA] text-[#4A3F35]' : 'text-[#8C7E6F] hover:bg-[#F9F7F4]'}`}
+                className={`w-[36px] h-[36px] flex items-center justify-center rounded-lg transition-colors ${viewMode === 'default' ? 'bg-[#E8E2DA] text-[#4A3F35]' : 'text-[#8C7E6F] hover:bg-[#F9F7F4]'}`}
                 title="Lista"
               >
                 <List size={18} />
               </button>
               <button 
                 onClick={() => setViewMode('compact')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'compact' ? 'bg-[#E8E2DA] text-[#4A3F35]' : 'text-[#8C7E6F] hover:bg-[#F9F7F4]'}`}
+                className={`w-[36px] h-[36px] flex items-center justify-center rounded-lg transition-colors ${viewMode === 'compact' ? 'bg-[#E8E2DA] text-[#4A3F35]' : 'text-[#8C7E6F] hover:bg-[#F9F7F4]'}`}
                 title="Cuadrícula"
               >
                 <Grid size={18} />
@@ -240,18 +277,14 @@ export default function Home() {
             <div className="flex gap-1 bg-[#E8E2DA] p-1 rounded-xl shadow-inner w-full sm:w-auto border border-[#E8E2DA]">
               <button 
                 onClick={() => setSort('recent')}
-                className={`px-4 py-2 flex-1 sm:flex-none text-[11px] uppercase tracking-wider font-bold rounded-lg transition-colors ${sort === 'recent' ? 'bg-white shadow-sm text-[#4A3F35]' : 'text-[#6B5E4F] hover:bg-white/50'}`}
+                className={`px-4 py-2 flex-1 sm:flex-none text-[11px] uppercase tracking-wider font-bold rounded-lg transition-colors bg-white shadow-sm text-[#4A3F35]`}
               >
                  RECIENTES
               </button>
-              <button 
-                onClick={() => setSort('az')}
-                className={`px-4 py-2 flex-1 sm:flex-none text-[11px] uppercase tracking-wider font-bold rounded-lg transition-colors ${sort === 'az' ? 'bg-white shadow-sm text-[#4A3F35]' : 'text-[#6B5E4F] hover:bg-white/50'}`}
-              >
-                 A - Z
-              </button>
+            </div>
             </div>
           </div>
+          <p className="text-[#8C7E6F] text-sm mt-3 hidden sm:block">Mostrando {currentJobs.length} de {filteredJobs.length} resultados encontrados</p>
         </div>
 
         <div 

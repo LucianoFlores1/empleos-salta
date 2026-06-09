@@ -9,7 +9,7 @@ import Home from './pages/Home';
 import JobDetails from './pages/JobDetails';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/admin/Login';
-import { Briefcase, Mail, MessageCircle, AlertTriangle, X } from 'lucide-react';
+import { Briefcase, Linkedin, MessageCircle, AlertTriangle, X, Mail } from 'lucide-react';
 
 function LegalDisclaimerDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -85,10 +85,13 @@ function Layout() {
               <p className="text-[10px] sm:text-xs text-[#8C7E6F] uppercase tracking-widest font-semibold hidden sm:block">Portal de Oportunidades Local</p>
             </div>
           </Link>
-          <div className="flex gap-4 sm:gap-8 items-center text-sm font-medium text-[#6B5E4F]">
-            {/* hidden on small screens just as a touch of layout */}
-            <Link to="/admin" className="px-5 py-2.5 bg-[#4A3F35] text-white rounded-full text-sm font-semibold hover:bg-[#2D2A26] transition-colors">
-              Panel Administrador
+          <div className="flex gap-4 sm:gap-6 items-center text-sm font-medium text-[#6B5E4F]">
+            <a href="https://www.linkedin.com/in/lucrf/" target="_blank" rel="noopener noreferrer" className="px-4 py-2 text-[#4A3F35] font-semibold hover:text-[#D96B43] flex items-center gap-2 transition-colors">
+              <Linkedin className="w-4 h-4" />
+              <span className="hidden sm:inline">Contacto</span>
+            </a>
+            <Link to="/admin" className="px-3 py-1.5 text-[#8C7E6F] text-xs font-medium hover:text-[#4A3F35] hover:bg-[#FDFCFB] rounded-lg transition-colors">
+              Admin
             </Link>
           </div>
         </div>
