@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'motion/react';
 import { Job } from '../types';
-import { getJobs } from '../api';
+import { getJobs, deleteJob } from '../api';
 import { inferCategory, CATEGORIES, formatRelativeDate } from '../utils';
-import { Search, MapPin, Building, ChevronLeft, ChevronRight, Filter, Edit2, Grid, List } from 'lucide-react';
+import { Search, MapPin, Building, ChevronLeft, ChevronRight, Filter, Edit2, Grid, List, Trash2 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import JobEditModal from '../components/JobEditModal';
@@ -17,7 +18,16 @@ export default function Home() {
   const [dateFilter, setDateFilter] = useState<'all'|'3days'|'7days'|'30days'>('all');
   const [sort, setSort] = useState<'recent' | 'relevant' | 'az'>('recent');
   const [viewMode, setViewMode] = useState<'default' | 'compact'>('default');
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const setPage = (newPage: number | ((p: number) => number)) => {
+    const p = typeof newPage === 'function' ? newPage(page) : newPage;
+    setSearchParams(prev => {
+      if (p === 1 || isNaN(p)) prev.delete('page');
+      else prev.set('page', p.toString());
+      return prev;
+    }, { replace: true });
+  };
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInput, setPageInput] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -26,6 +36,7 @@ export default function Home() {
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{isOpen: boolean, message: string, onConfirm: () => void} | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
@@ -95,6 +106,23 @@ export default function Home() {
       else setPage(newPage);
     }
     setIsEditingPage(false);
+  };
+
+  const handleDeleteJob = async (jobId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setConfirmDialog({
+      isOpen: true,
+      message: '¿Estás seguro de que deseas eliminar esta oferta de empleo?',
+      onConfirm: async () => {
+        try {
+          await deleteJob(jobId);
+          setJobs(jobs.filter(j => j.id !== jobId));
+        } catch (err) {
+          console.error('Error deleting job:', err);
+        }
+      }
+    });
   };
 
   const currentJobs = filteredJobs.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -268,26 +296,13 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.3), ease: "easeOut" }}
               key={job.id}
-              className="h-full"
+              className="h-full relative group"
             >
-            <Link to={`/jobs/${job.id}`} className="group bg-white rounded-2xl overflow-hidden border border-[#C0B4A5] border-b-[6px] border-b-[#A6998A] border-l-[6px] border-l-[#D1C7BC] shadow-[0_6px_24px_rgba(139,69,19,0.08)] hover:shadow-[0_12px_40px_rgba(139,69,19,0.15)] hover:-translate-y-1 hover:border-b-[#8C7E6F] hover:border-l-[#C0B4A5] transition-all duration-300 flex flex-col h-full outline-none focus-within:border-[#8B4513]">
+            <Link to={`/jobs/${job.id}`} className="block bg-white rounded-2xl overflow-hidden border border-[#C0B4A5] border-b-[6px] border-b-[#A6998A] border-l-[6px] border-l-[#D1C7BC] shadow-[0_6px_24px_rgba(139,69,19,0.08)] group-hover:shadow-[0_12px_40px_rgba(139,69,19,0.15)] group-hover:-translate-y-1 group-hover:border-b-[#8C7E6F] group-hover:border-l-[#C0B4A5] transition-all duration-300 flex flex-col h-full outline-none focus-within:border-[#8B4513]">
               <div className={`${viewMode === 'compact' ? 'h-24 sm:h-32' : 'h-32 sm:h-40'} w-full overflow-hidden bg-[#E8E2DA] relative border-b-2 border-[#D1C7BC]`}>
                 <div className="absolute inset-0 ring-1 ring-inset ring-black/10 z-20 pointer-events-none"></div>
                 <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
                   <span className="text-white bg-black/60 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">Ver Flyer</span>
-                  {isAdmin && (
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setEditingJob(job);
-                      }}
-                      className="absolute top-2 right-2 bg-white/90 hover:bg-white text-[#8B4513] p-2 rounded-lg shadow backdrop-blur-sm transition-all"
-                      title="Editar oferta"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                  )}
                 </div>
                 <img 
                   src={`https://drive.google.com/thumbnail?id=${job.driveId || job.id}&sz=w400`} 
@@ -336,6 +351,28 @@ export default function Home() {
                 </div>
               </div>
             </Link>
+            {isAdmin && (
+              <div className="absolute top-2 right-2 flex flex-col gap-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <button 
+                   onClick={(e) => {
+                     e.preventDefault();
+                     e.stopPropagation();
+                     setEditingJob(job);
+                   }}
+                   className="bg-white/90 hover:bg-white text-[#8B4513] p-2 rounded-lg shadow backdrop-blur-sm transition-all pointer-events-auto cursor-pointer"
+                   title="Editar oferta"
+                 >
+                   <Edit2 size={16} />
+                 </button>
+                 <button 
+                   onClick={(e) => handleDeleteJob(job.id, e)}
+                   className="bg-white/90 hover:bg-white text-red-600 p-2 rounded-lg shadow backdrop-blur-sm transition-all pointer-events-auto cursor-pointer"
+                   title="Eliminar oferta"
+                 >
+                   <Trash2 size={16} />
+                 </button>
+              </div>
+            )}
             </motion.div>
           ))}
         </div>
@@ -393,6 +430,36 @@ export default function Home() {
             setJobs(jobs.map(j => j.id === updatedJob.id ? updatedJob : j));
           }} 
         />
+      )}
+
+      {confirmDialog && confirmDialog.isOpen && createPortal(
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar acción</h3>
+              <p className="text-gray-600">{confirmDialog.message}</p>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+              <button 
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={async () => {
+                  const action = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  await action();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

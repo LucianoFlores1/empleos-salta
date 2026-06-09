@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Job } from '../../types';
 import { getJobs, deleteJob, importJobs, createJob, updateJob, bulkUpdateJobsCategory, bulkDeleteJobs } from '../../api';
-import { inferCategory, CATEGORIES } from '../../utils';
-import { Plus, Upload, Trash2, Edit, LogOut, CheckCircle2, AlertCircle, RefreshCw, FolderTree, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
+import { inferCategory, CATEGORIES, formatRelativeDate } from '../../utils';
+import { Plus, Upload, Trash2, Edit, LogOut, CheckCircle2, AlertCircle, RefreshCw, FolderTree, ArrowDownAZ, ArrowUpAZ, Image as ImageIcon } from 'lucide-react';
 import { auth, logout } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -23,6 +23,10 @@ export default function AdminDashboard() {
   const [useAIForImport, setUseAIForImport] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragAction, setDragAction] = useState<boolean | null>(null);
+
+  // Import Preview State
+  const [isImportPreviewOpen, setIsImportPreviewOpen] = useState(false);
+  const [importPreviewData, setImportPreviewData] = useState<any[]>([]);
 
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -94,29 +98,40 @@ export default function AdminDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    setIsImporting(true);
     reader.onload = async (ev) => {
       try {
         const text = ev.target?.result as string;
         const data = JSON.parse(text);
         if (!Array.isArray(data)) throw new Error('El JSON debe ser un array de objetos');
         
-        const result = await importJobs(mode, data, useAIForImport);
-        if (result.count === 0 && result.message) {
-          showMsg('success', result.message);
-        } else {
-          showMsg('success', `Datos importados exitosamente (${result.count} ítems agregados nuevos)`);
-        }
-        loadData();
+        setImportPreviewData(data);
+        setIsImportPreviewOpen(true);
       } catch (err: any) {
         showMsg('error', `Error importando JSON: ${err.message}`);
-      } finally {
-        setIsImporting(false);
       }
     };
-    reader.onerror = () => setIsImporting(false);
+    reader.onerror = () => showMsg('error', 'Error leyendo archivo');
     reader.readAsText(file);
     e.target.value = '';
+  };
+
+  const handleConfirmImport = async () => {
+    setIsImporting(true);
+    setIsImportPreviewOpen(false);
+    try {
+      const result = await importJobs('merge', importPreviewData, useAIForImport);
+      if (result.count === 0 && result.message) {
+        showMsg('success', result.message);
+      } else {
+        showMsg('success', `Datos importados exitosamente (${result.count} ítems agregados nuevos)`);
+      }
+      loadData();
+    } catch (err: any) {
+      showMsg('error', `Error importando JSON: ${err.message}`);
+    } finally {
+      setIsImporting(false);
+      setImportPreviewData([]);
+    }
   };
 
   const openNewForm = () => {
@@ -158,6 +173,7 @@ export default function AdminDashboard() {
         try {
           await bulkUpdateJobsCategory(Array.from(selectedIds), bulkCategory);
           showMsg('success', `${selectedIds.size} ofertas recategorizadas`);
+          setSelectedIds(new Set());
           loadData();
           setBulkCategory('');
         } catch (err: any) {
@@ -179,6 +195,7 @@ export default function AdminDashboard() {
         try {
           await bulkDeleteJobs(Array.from(selectedIds));
           showMsg('success', `${selectedIds.size} ofertas eliminadas`);
+          setSelectedIds(new Set());
           loadData();
         } catch (err: any) {
           showMsg('error', `Error: ${err.message}`);
@@ -242,6 +259,16 @@ export default function AdminDashboard() {
         return next;
       });
     }
+  };
+
+  const handleSelectObsolete = () => {
+    const obsoleteIds = filteredJobs
+      .filter(j => {
+         const dateStr = j.date || j.createdAt;
+         return formatRelativeDate(dateStr, !!j.date).type === 'obsolete';
+      })
+      .map(j => j.id);
+    setSelectedIds(new Set(obsoleteIds));
   };
 
   const filteredJobs = useMemo(() => {
@@ -347,6 +374,14 @@ export default function AdminDashboard() {
           {sortOrder === 'desc' ? <ArrowDownAZ size={16} /> : <ArrowUpAZ size={16} />}
           {sortOrder === 'desc' ? 'Más recientes primero' : 'Más antiguas primero'}
         </button>
+        <button
+          onClick={handleSelectObsolete}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors w-full sm:w-auto bg-amber-100/50 hover:bg-amber-100 text-amber-800 border border-amber-200"
+          title="Seleccionar todas las ofertas obsoletas en la vista actual"
+        >
+          <AlertCircle size={16} />
+          Seleccionar Obsoletas
+        </button>
       </div>
 
       {loading ? (
@@ -427,50 +462,87 @@ export default function AdminDashboard() {
       {/* Form Modal */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0">
               <h2 className="text-xl font-bold text-gray-900">{editingId ? 'Editar Oferta' : 'Nueva Oferta'}</h2>
               <button type="button" onClick={() => setIsFormOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
-            <form onSubmit={handleSubmitForm} className="p-6 flex flex-col gap-4">
-               <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
-                  <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+            
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
+               {/* Left: Image Preview */}
+               <div className="w-full md:w-1/2 bg-[#F9F7F4] border-b md:border-b-0 md:border-r border-[#E8E2DA] p-6 flex flex-col items-center justify-start overflow-y-auto">
+                 {(formData.driveId || formData.id) ? (
+                    <div className="relative w-full h-full flex flex-col items-center justify-start min-h-[300px]">
+                       <span className="text-xs font-semibold text-[#8C7E6F] mb-3 uppercase tracking-wider block">Vista previa del flyer</span>
+                       <img 
+                         src={`https://drive.google.com/thumbnail?id=${formData.driveId || formData.id}&sz=w800`}
+                         alt="Previsualización"
+                         className="max-h-[500px] w-auto object-contain rounded-lg shadow-sm border border-[#E8E2DA]"
+                         referrerPolicy="no-referrer"
+                         onError={(e) => {
+                            const target = e.currentTarget;
+                            target.style.display = 'none';
+                            target.nextElementSibling?.classList.remove('hidden');
+                         }}
+                       />
+                       <div className="hidden flex-col items-center justify-center text-center p-6 bg-white border border-red-200 rounded-lg max-w-xs mt-4">
+                         <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
+                         <p className="text-sm font-medium text-gray-800">No se pudo cargar la imagen</p>
+                         <p className="text-xs text-gray-500 mt-1">Verifica que el Drive ID sea correcto o que el archivo tenga permisos de lectura pública.</p>
+                       </div>
+                    </div>
+                 ) : (
+                    <div className="flex flex-col items-center justify-center text-center text-[#8C7E6F] min-h-[300px] h-full">
+                       <ImageIcon className="w-12 h-12 mb-3 opacity-50" />
+                       <p className="text-sm">Ingresa un ID de Google Drive para ver la previsualización</p>
+                    </div>
+                 )}
                </div>
-               <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Drive ID (Imágen/Flyer)</label>
-                  <input type="text" value={formData.driveId || formData.id || ''} onChange={e => setFormData({...formData, driveId: e.target.value})} placeholder="ej: 1iHcgzhyg-nLXS..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm" />
-                  <p className="text-xs text-gray-500 mt-1">ID del archivo en Google Drive para mostrar el flyer.</p>
+
+               {/* Right: Form */}
+               <div className="w-full md:w-1/2 flex flex-col overflow-y-auto">
+                 <form id="job-form" onSubmit={handleSubmitForm} className="p-6 flex flex-col gap-4">
+                   <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+                      <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none" />
+                   </div>
+                   <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Drive ID (Imágen/Flyer)</label>
+                      <input type="text" value={formData.driveId || formData.id || ''} onChange={e => setFormData({...formData, driveId: e.target.value})} placeholder="ej: 1iHcgzhyg-nLXS..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none font-mono text-sm" />
+                      <p className="text-xs text-gray-500 mt-1">ID del archivo en Google Drive para mostrar el flyer.</p>
+                   </div>
+                   <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">URL / Link a Postulación *</label>
+                      <input type="url" value={formData.source || ''} onChange={e => setFormData({...formData, source: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none" />
+                   </div>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                        <select value={formData.category || CATEGORIES[CATEGORIES.length - 1]} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none bg-white">
+                          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                     </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
+                        <input type="text" value={formData.location || ''} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none" />
+                     </div>
+                   </div>
+                   <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                      <input type="text" value={formData.company || ''} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none" />
+                   </div>
+                   <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Descripción corta</label>
+                      <textarea value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none resize-none"></textarea>
+                   </div>
+                 </form>
                </div>
-               <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL / Link a Postulación *</label>
-                  <input type="url" value={formData.source || ''} onChange={e => setFormData({...formData, source: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-               </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                    <select value={formData.category || CATEGORIES[CATEGORIES.length - 1]} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                 </div>
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
-                    <input type="text" value={formData.location || ''} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                 </div>
-               </div>
-               <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
-                  <input type="text" value={formData.company || ''} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-               </div>
-               <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción corta</label>
-                  <textarea value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
-               </div>
-               <div className="mt-4 flex justify-end gap-3 sticky bottom-0 bg-white pt-2 border-t border-gray-100">
-                  <button type="button" onClick={() => setIsFormOpen(false)} className="px-5 py-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
-                  <button type="submit" className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">Guardar</button>
-               </div>
-            </form>
+            </div>
+            
+            <div className="p-4 sm:p-6 border-t border-gray-100 flex justify-end gap-3 bg-white shrink-0">
+                <button type="button" onClick={() => setIsFormOpen(false)} className="px-5 py-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
+                <button type="submit" form="job-form" className="px-5 py-2.5 bg-[#4A3F35] text-white rounded-lg font-medium hover:bg-[#2D2A26] transition-colors">Guardar</button>
+            </div>
           </div>
         </div>
       )}
@@ -492,15 +564,117 @@ export default function AdminDashboard() {
                 Cancelar
               </button>
               <button 
-                onClick={() => {
-                  confirmDialog.onConfirm();
+                onClick={async () => {
+                  const action = confirmDialog.onConfirm;
                   setConfirmDialog(null);
+                  await action();
                 }}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
                 disabled={isUpdatingBulk}
               >
                 Confirmar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Preview Modal */}
+      {isImportPreviewOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0">
+              <h2 className="text-xl font-bold text-gray-900">Previsualizar Importación ({importPreviewData.length} empleos)</h2>
+              <button type="button" onClick={() => setIsImportPreviewOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 bg-[#F9F7F4]">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {importPreviewData.map((job, idx) => (
+                    <div key={idx} className="bg-white border border-[#E8E2DA] rounded-lg shadow-sm overflow-hidden flex flex-col">
+                      <div className="h-56 bg-[#F9F7F4] flex items-center justify-center relative border-b border-[#E8E2DA] p-2">
+                         {(job.driveId || job.id) ? (
+                            <img 
+                               src={`https://drive.google.com/thumbnail?id=${job.driveId || job.id}&sz=w600`}
+                               alt="Flyer"
+                               className="h-full w-full object-contain"
+                               referrerPolicy="no-referrer"
+                               onError={(e) => {
+                                 const target = e.currentTarget;
+                                 target.style.display = 'none';
+                                 target.nextElementSibling?.classList.remove('hidden');
+                               }}
+                            />
+                         ) : (
+                            <ImageIcon className="w-10 h-10 text-gray-300" />
+                         )}
+                         <div className="hidden absolute inset-0 flex flex-col items-center justify-center bg-[#F9F7F4] text-gray-400 p-4 text-center">
+                            <AlertCircle className="w-8 h-8 mb-2 text-red-400" />
+                            <span className="text-xs">Preview no disponible</span>
+                         </div>
+                      </div>
+                      <div className="p-4 flex flex-col gap-3">
+                         <div>
+                           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Título de la oferta</label>
+                           <input 
+                              type="text" 
+                              value={job.title || ''} 
+                              onChange={(e) => {
+                                 const newData = [...importPreviewData];
+                                 newData[idx] = { ...newData[idx], title: e.target.value };
+                                 setImportPreviewData(newData);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#8C7E6F] outline-none transition-shadow"
+                              placeholder="Ej: Administrador contable"
+                           />
+                         </div>
+                         <div>
+                           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Empresa (Opcional)</label>
+                           <input 
+                              type="text" 
+                              value={job.company || ''} 
+                              onChange={(e) => {
+                                 const newData = [...importPreviewData];
+                                 newData[idx] = { ...newData[idx], company: e.target.value };
+                                 setImportPreviewData(newData);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#8C7E6F] outline-none transition-shadow"
+                              placeholder="Ej: Consultora X"
+                           />
+                         </div>
+                         <div className="flex items-center gap-2 mt-1">
+                           <button onClick={() => {
+                               const newData = importPreviewData.filter((_, i) => i !== idx);
+                               setImportPreviewData(newData);
+                             }} 
+                             className="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                             title="Descartar esta oferta de la importación"
+                           >
+                              <Trash2 className="w-3.5 h-3.5" /> Descartar
+                           </button>
+                         </div>
+                      </div>
+                    </div>
+                 ))}
+               </div>
+               {importPreviewData.length === 0 && (
+                 <div className="text-center py-20 text-gray-500 font-medium">
+                    No hay empleos para importar.
+                 </div>
+               )}
+            </div>
+
+            <div className="p-4 sm:p-6 border-t border-gray-100 flex justify-end gap-3 bg-white shrink-0">
+                <button type="button" onClick={() => setIsImportPreviewOpen(false)} className="px-5 py-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
+                <button 
+                  type="button" 
+                  onClick={handleConfirmImport} 
+                  disabled={importPreviewData.length === 0 || isImporting}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A3F35] text-white rounded-lg font-medium hover:bg-[#2D2A26] transition-colors disabled:opacity-50"
+                >
+                  {isImporting ? <RefreshCw size={18} className="animate-spin" /> : <Upload size={18} />}
+                  Confirmar Importación ({importPreviewData.length})
+                </button>
             </div>
           </div>
         </div>

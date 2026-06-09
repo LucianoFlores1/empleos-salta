@@ -92,7 +92,7 @@ export default async function handler(req, res) {
 
     // Provide the dynamic HTML
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300'); // Cache at Edge
+    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400'); // Cache for 1 hour at Edge, serve stale for 24h
     res.status(200).send(html);
 
   } catch (err) {

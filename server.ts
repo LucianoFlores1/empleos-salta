@@ -25,6 +25,15 @@ app.get('/api/job', async (req, res) => {
   }
 });
 
+// Parity dev route for home
+app.get('/', async (req, res, next) => {
+    // Vite will usually intercept this in development via middleware,
+    // but in production dist/ it's handled by express.static before reaching here 
+    // unless we place it carefully. For simplicity locally, let Vite handle it, 
+    // only on Vercel the function runs.
+    next();
+});
+
 app.post('/api/enhance-jobs', async (req, res) => {
   try {
     const { jobs, force } = req.body;

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'motion/react';
 import { Job } from '../types';
-import { getJob } from '../api';
+import { getJob, deleteJob } from '../api';
 import { inferCategory, formatRelativeDate } from '../utils';
-import { ArrowLeft, MapPin, Building, Calendar, Share2, ExternalLink, Image as ImageIcon, Edit2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Building, Calendar, Share2, ExternalLink, Image as ImageIcon, Edit2, Trash2 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import JobEditModal from '../components/JobEditModal';
@@ -19,6 +20,8 @@ export default function JobDetails() {
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{isOpen: boolean, message: string, onConfirm: () => void} | null>(null);
+  const [copyMsg, setCopyMsg] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
@@ -84,8 +87,24 @@ export default function JobDetails() {
       }).catch(console.error);
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert('Link copiado al portapapeles');
+      setCopyMsg(true);
+      setTimeout(() => setCopyMsg(false), 3000);
     }
+  };
+
+  const handleDeleteJob = async () => {
+    setConfirmDialog({
+      isOpen: true,
+      message: '¿Estás seguro de que deseas eliminar esta oferta de empleo?',
+      onConfirm: async () => {
+        try {
+          await deleteJob(job.id);
+          navigate('/', { replace: true });
+        } catch (err) {
+          console.error('Error deleting job:', err);
+        }
+      }
+    });
   };
 
   return (
@@ -181,9 +200,14 @@ export default function JobDetails() {
             </div>
             <div className="flex items-center gap-2">
               {isAdmin && (
-                <button onClick={() => setIsEditing(true)} className="p-2 text-[#8B4513] hover:text-[#6b350e] hover:bg-[#E8E2DA] rounded-lg transition-colors shrink-0" title="Editar oferta">
-                  <Edit2 size={24} />
-                </button>
+                <>
+                  <button onClick={() => setIsEditing(true)} className="p-2 text-[#8B4513] hover:text-[#6b350e] hover:bg-[#E8E2DA] rounded-lg transition-colors shrink-0" title="Editar oferta">
+                    <Edit2 size={24} />
+                  </button>
+                  <button onClick={handleDeleteJob} className="p-2 text-red-600 hover:text-red-800 hover:bg-[#E8E2DA] rounded-lg transition-colors shrink-0" title="Eliminar oferta">
+                    <Trash2 size={24} />
+                  </button>
+                </>
               )}
               <button onClick={handleShare} className="p-2 text-[#8C7E6F] hover:text-[#8B4513] hover:bg-[#E8E2DA] rounded-lg transition-colors shrink-0" title="Compartir">
                 <Share2 size={24} />
@@ -259,6 +283,42 @@ export default function JobDetails() {
              setJob(updatedJob);
           }} 
         />
+      )}
+
+      {copyMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50">
+          Link copiado al portapapeles
+        </div>
+      )}
+
+      {confirmDialog && confirmDialog.isOpen && createPortal(
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar acción</h3>
+              <p className="text-gray-600">{confirmDialog.message}</p>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+              <button 
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={async () => {
+                  const action = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  await action();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </motion.div>
   );

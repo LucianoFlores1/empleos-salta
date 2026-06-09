@@ -1,77 +1,72 @@
 # Portal de Empleos Salta
 
-Plataforma de visualización y gestión de ofertas de empleo para la provincia de Salta, con base de datos en Firebase (Firestore).
+Plataforma rápida y moderna de visualización y gestión de ofertas de empleo enfocada en la provincia de Salta. Permite a los usuarios consultar vacantes disponibles y a los administradores gestionar las publicaciones mediante un panel seguro.
 
-## Tecnologías Principales
+## 🚀 Tecnologías Principales
 
-- React 19 + TypeScript
-- Vite + Express
-- Tailwind CSS
-- Firebase (Auth, Firestore)
+- **Frontend**: React 19, TypeScript, Vite
+- **Estilos**: Tailwind CSS, Lucide React (Íconos)
+- **Backend & BD**: Express, Firebase (Auth, Firestore, Admin)
+- **Deployment**: Optimizado para entornos serverless (Vercel) o servidores Node.js
+- **SEO**: Prerenderizado en Edge API routes, sitemaps y Schema.org con metadata.
 
-## Subida del Repositorio a GitHub (Público)
+## ✨ Características
 
-Para subir este proyecto de manera segura a un repositorio público, es fundamental NO incluir las credenciales de la base de datos ni los datos locales en el control de versiones. Esto ya está contemplado en este proyecto mediante el archivo `.gitignore` configurado.
+- Interfaz moderna y orientada a la rápida visualización de ofertas laborales (modo lista/grilla).
+- Panel de administración seguro para crear, editar, destacar y eliminar vacantes o generar propuestas en borrador.
+- Autenticación controlada y libre de fricción mediante Google Auth (Firebase).
+- Optimización SEO "AI-First" (Perplexity, ChatGPT) y para motores de búsqueda tradicionales con Schema.org y OpenGraph.
+- Diseño fluido y "mobile-first" usando las utilidades de Tailwind v4.
 
-### ¿Qué se sube?
-- Todo el código fuente en `/src`
-- La configuración pública como `vite.config.ts`, `package.json`, `tailwind` y los archivos estáticos en `/public`.
-- Archivos de declaración general e infraestructura (`server.ts`, `.gitignore`, `tsconfig.json`).
-- Documentación como este `README.md`.
+## 🛠️ Instalación y Uso Local
 
-### ¿Qué NO se sube? (Seguridad)
-El archivo `.gitignore` ya está configurado para omitir los siguientes elementos críticos:
-1. `firebase-applet-config.json` (Contiene todos los IDs de la configuración de tu entorno de Firebase en uso actual).
-2. `data.json` (Base de datos local en caso de usar el motor fallback).
-3. `.env` (Variables de entorno con secretos).
-4. `node_modules/` y `/dist/` (Archivos autogenerados al compilar o instalar dependencias).
+1. **Clonar el repositorio**:
+   ```bash
+   git clone https://github.com/TU-USUARIO/TU-REPOSITORIO.git
+   cd TU-REPOSITORIO
+   ```
 
-**Tutorial de subida con git:**
-```bash
-# Inicializa el repositorio si no lo has hecho
-git init
+2. **Instalar dependencias**:
+   ```bash
+   npm install
+   ```
 
-# Agrega todos los archivos seguros (git respetará tu .gitignore)
-git add .
+3. **Configurar las Variables de Entorno**:
+   Crea un archivo `.env` en la raíz del proyecto (este archivo se encuentra ignorado en `.gitignore` por seguridad). Utiliza el siguiente formato rellenando con los datos de tu consola web de Firebase:
+   
+   ```env
+   VITE_FIREBASE_API_KEY="AIzaSy..."
+   VITE_FIREBASE_AUTH_DOMAIN="tu-proyecto.firebaseapp.com"
+   VITE_FIREBASE_PROJECT_ID="tu-proyecto"
+   VITE_FIREBASE_STORAGE_BUCKET="tu-proyecto.appspot.com"
+   VITE_FIREBASE_MESSAGING_SENDER_ID="123456789"
+   VITE_FIREBASE_APP_ID="1:123456789:web:abcdefghij"
+   VITE_FIREBASE_DATABASE_ID="(default)"
+   
+   # Opcional (para funciones Serverless)
+   FIREBASE_PROJECT_ID="tu-proyecto"
+   FIREBASE_DATABASE_ID="(default)"
+   ```
 
-# Haz el commit
-git commit -m "Initial commit del Portal de Empleos Salta"
+4. **Iniciar el servidor de desarrollo**:
+   ```bash
+   npm run dev
+   ```
 
-# Vincula a tu repositorio público (cambia el link por tu repo real)
-git remote add origin https://github.com/TU-USUARIO/TU-REPOSITORIO.git
+5. **Compilación para Producción**:
+   ```bash
+   npm run build
+   npm start
+   ```
 
-# Empuja los cambios
-git push -u origin main
-```
+## 🔒 Privacidad y Seguridad
 
-## Configuración de Entorno (Base de datos Firebase)
+Las operaciones de administración de la plataforma están protegidas mediante un esquema de backend sólido:
+- **Frontend / Acceso Visual**: Requiere autenticación de Google válida, verificando que el usuario pertenezca a la colección `admins`.
+- **Backend (Reglas de Firestore)**: `firestore.rules` rechaza cualquier operación de escritura (create, update, delete) sobre las colecciones si la petición proviene de un usuario sin la acreditación correspondiente de administración en la base de datos de Firebase.
 
-Ya que usamos Firebase, la configuración NO se sube a tu repositorio, por lo tanto si luego clonas el proyecto o tu equipo lo descarga, arrojará un error sobre la falta del archivo `firebase-applet-config.json`.
+## ⚖️ Aviso Legal
 
-Existen dos maneras de solucionar en otro equipo para clonar y levantar localmente:
+Este portal es **exclusivamente un espacio de recopilación y difusión de ofertas de empleo públicas o de terceros**. La plataforma no representa a las empresas contratantes ni participa en los procesos de selección, entrevistas o contratación. 
 
-### Opción 1: Crear el archivo manualmente (Desarrollo local)
-Si tú u otra persona de tu equipo quiere levantar el entorno, deben crear el archivo `firebase-applet-config.json` en la raíz del proyecto. El archivo tiene este formato:
-
-```json
-{
-  "apiKey": "AIzaSy...",
-  "authDomain": "tu-proyecto.firebaseapp.com",
-  "projectId": "tu-proyecto",
-  "storageBucket": "tu-proyecto.appspot.com",
-  "messagingSenderId": "123456789",
-  "appId": "1:123456789:web:abcdefghijk",
-  "firestoreDatabaseId": "(default)"
-}
-```
-*Los valores los consigues en la Configuración de Proyecto (Engranaje) de tu consola de Firebase.*
-
-### Opción 2: Usar Variables de Entorno (.env)
-Si deseas desplegar la aplicación a producción (como Heroku, Vercel o Cloud Run), lo ideal consiste en crear un `.env` local (o en tu nube):
-
-1. Crea un archivo `.env` en la raíz (ignorado por Git).
-2. Agrega las claves tipo `VITE_FIREBASE_API_KEY=AIzaSy...`
-3. Ajustar el archivo `src/lib/firebase.ts` para que si no existe el JSON, use las variables `import.meta.env.*`.
-
-## Seguridad Reforzada
-Hemos realizado en el código local una limpieza de las rutas REST en `server.ts` que antes contenían un administrador local "hardcodeado", con lo cual la aplicación depende ahora 100% de la lógica de autenticación segura de Firebase y Google Auth. ¡Tu sistema está preparado para publicarse!
+Toda la información proporcionada es a título informativo y los usuarios son responsables de **verificar la autenticidad de las propuestas y las empresas** antes de compartir información personal, enviar currículums o presentarse a entrevistas.
