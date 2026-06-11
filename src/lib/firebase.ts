@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -17,12 +17,33 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || '(defa
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+export const loginWithEmail = async (email: string, pass: string) => {
+    try {
+        const result = await signInWithEmailAndPassword(auth, email, pass);
+        return result.user;
+    } catch (error: any) {
+        // Si el usuario no existe y es el admin solicitado, lo creamos y "hasheamos" la contraseña mediante Firebase Auth
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+            if (email.toLowerCase() === 'aramayodanielagimena32@gmail.com') {
+                 try {
+                     const result = await createUserWithEmailAndPassword(auth, email, pass);
+                     await setDoc(doc(db, 'admins', result.user.uid), {}, { merge: true }).catch(console.error);
+                     return result.user;
+                 } catch (createError) {
+                     console.error("Error creating user:", createError);
+                     throw createError;
+                 }
+            }
+        }
+        console.error("Email login failed:", error);
+        throw error;
+    }
+}
+
 export const loginWithGoogle = async () => {
     try {
         const result = await signInWithPopup(auth, googleProvider);
-        // On first login (or any), attempt to make ourselves admin if we are the designated developer
-        // This takes advantage of the bootstrap rule:
-        if (result.user.email === 'chisipufli.chisito@gmail.com') {
+        if (result.user.email === 'chisipufli.chisito@gmail.com' || result.user.email?.toLowerCase() === 'aramayodanielagimena32@gmail.com') {
             await setDoc(doc(db, 'admins', result.user.uid), {}, { merge: true }).catch(console.error);
         }
         return result.user;
