@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginWithGoogle, loginWithEmail } from '../../lib/firebase';
+import { loginWithEmail } from '../../lib/firebase';
 
 export default function Login() {
   const [error, setError] = useState('');
@@ -8,22 +8,22 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleGoogleLogin = async () => {
-    try {
-      await loginWithGoogle();
-      navigate('/admin');
-    } catch (err: any) {
-      setError("Error al iniciar sesión: " + err.message);
-    }
-  };
-
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await loginWithEmail(email, password);
       navigate('/admin');
     } catch (err: any) {
-      setError("Credenciales inválidas o error de conexión.");
+      console.error("Login error:", err);
+      if (err.code === 'auth/operation-not-allowed') {
+        setError("Error: El inicio de sesión con correo no está habilitado en Firebase. Habilítalo en tu consola de Firebase (Authentication > Sign-in method).");
+      } else if (err.code === 'auth/invalid-credential') {
+        setError("Credenciales inválidas. Verifica tu correo y contraseña.");
+      } else if (err.code === 'auth/weak-password') {
+        setError("La contraseña es muy débil (debe tener al menos 6 caracteres).");
+      } else {
+        setError(err.message || "Credenciales inválidas o error de conexión.");
+      }
     }
   };
 
@@ -60,21 +60,6 @@ export default function Login() {
           Iniciar sesión
         </button>
       </form>
-
-      <div className="relative flex items-center py-2 mb-6">
-        <div className="flex-grow border-t border-gray-200"></div>
-        <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">o</span>
-        <div className="flex-grow border-t border-gray-200"></div>
-      </div>
-
-      <button 
-        type="button"
-        onClick={handleGoogleLogin} 
-        className="w-full inline-flex items-center justify-center bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-medium py-2.5 px-4 rounded-lg transition-colors shadow-sm gap-3"
-      >
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-        Ingresar con Google
-      </button>
     </div>
   );
 }

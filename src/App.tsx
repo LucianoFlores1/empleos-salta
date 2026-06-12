@@ -4,12 +4,13 @@
  */
 
 import { BrowserRouter, Routes, Route, Link, Outlet } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Home from './pages/Home';
 import JobDetails from './pages/JobDetails';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/admin/Login';
-import { Briefcase, Linkedin, MessageCircle, AlertTriangle, X, Mail } from 'lucide-react';
+import { Briefcase, Linkedin, MessageCircle, AlertTriangle, X, Mail, Code, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 function LegalDisclaimerDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -71,26 +72,93 @@ function LegalDisclaimerDialog() {
 }
 
 function Layout() {
+  const [showContact, setShowContact] = useState(false);
+  const contactRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (contactRef.current && !contactRef.current.contains(event.target as Node)) {
+        setShowContact(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#FDFCFB] text-[#2D2A26] font-sans flex flex-col">
       <LegalDisclaimerDialog />
       <header className="h-20 border-b border-[#E8E2DA] sticky top-0 z-10 px-4 sm:px-8 bg-white flex items-center justify-between">
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 overflow-hidden shrink-0 flex items-center justify-center">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 overflow-hidden shrink-0 flex items-center justify-center">
               <img src="/logo.webp" alt="Empleos Salta Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-[#4A3F35]">EMPLEOS SALTA</h1>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[#4A3F35]">EMPLEOS SALTA</h1>
               <p className="text-[10px] sm:text-xs text-[#8C7E6F] uppercase tracking-widest font-semibold hidden sm:block">Portal de Oportunidades Local</p>
             </div>
           </Link>
-          <div className="flex gap-4 sm:gap-6 items-center text-sm font-medium text-[#6B5E4F]">
-            <a href="https://www.linkedin.com/in/lucrf/" target="_blank" rel="noopener noreferrer" className="px-4 py-2 text-[#4A3F35] font-semibold hover:text-[#D96B43] flex items-center gap-2 transition-colors">
-              <Linkedin className="w-4 h-4" />
-              <span className="hidden sm:inline">Contacto</span>
-            </a>
-            <Link to="/admin" className="px-3 py-1.5 text-[#8C7E6F] text-xs font-medium hover:text-[#4A3F35] hover:bg-[#FDFCFB] rounded-lg transition-colors">
+          <div className="flex gap-2 sm:gap-6 items-center text-sm font-medium text-[#6B5E4F]">
+            
+            <div className="relative" ref={contactRef}>
+              <button 
+                onClick={() => setShowContact(!showContact)}
+                className={`px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-all rounded-xl shadow-sm ${showContact ? 'bg-[#6A340E] text-white shadow-md' : 'bg-[#8B4513] text-white hover:bg-[#6A340E] hover:shadow-md'}`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Contáctanos</span>
+              </button>
+
+              <AnimatePresence>
+                {showContact && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-[#E8E2DA] overflow-hidden z-50 flex flex-col"
+                  >
+                    <div className="p-3 bg-[#FAF9F7] border-b border-[#E8E2DA]">
+                      <p className="text-xs font-bold text-[#8C7E6F] uppercase tracking-wider text-center">Nuestro Equipo</p>
+                    </div>
+                    <div className="p-2 flex flex-col gap-1">
+                      <a 
+                        href="https://www.linkedin.com/in/lucrf/" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-[#F9F7F4] transition-colors group"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-[#E8E2DA] flex items-center justify-center shrink-0 group-hover:bg-blue-100 group-hover:text-blue-700 text-[#6B5E4F] transition-colors">
+                          <Code className="w-5 h-5" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-[#4A3F35] group-hover:text-blue-800 transition-colors">Luciano Flores</span>
+                          <span className="text-xs text-[#8C7E6F] font-medium">Programador de la App</span>
+                        </div>
+                      </a>
+                      
+                      <a 
+                        href="https://www.linkedin.com/in/daniela-gimena-aramayo-0b00203b4/" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-[#F9F7F4] transition-colors group"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-[#E8E2DA] flex items-center justify-center shrink-0 group-hover:bg-purple-100 group-hover:text-purple-700 text-[#6B5E4F] transition-colors">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-[#4A3F35] group-hover:text-purple-800 transition-colors">Daniela Aramayo</span>
+                          <span className="text-xs text-[#8C7E6F] font-medium">Recursos Humanos</span>
+                        </div>
+                      </a>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <Link to="/admin" className="px-2 py-1.5 sm:px-3 text-[#8C7E6F] text-xs font-medium hover:text-[#4A3F35] hover:bg-[#FDFCFB] rounded-lg transition-colors">
               Admin
             </Link>
           </div>

@@ -17,7 +17,7 @@ export default function Home() {
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [dateFilter, setDateFilter] = useState<'all'|'3days'|'7days'|'30days'>('all');
   const [sort, setSort] = useState<'recent' | 'relevant' | 'az'>('recent');
-  const [viewMode, setViewMode] = useState<'default' | 'compact'>('default');
+  const [viewMode, setViewMode] = useState<'default' | 'compact'>('compact');
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1', 10);
   const setPage = (newPage: number | ((p: number) => number)) => {
