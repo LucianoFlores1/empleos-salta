@@ -1,4 +1,5 @@
 import { Job } from './types';
+import localJobs from './data/localJobs.json';
 import { db, auth } from './lib/firebase';
 import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { inferCategory } from './utils';
@@ -55,11 +56,50 @@ export const getJobs = async (): Promise<Job[]> => {
         return data;
       }
     }
-    const snap = await getDocs(collection(db, 'jobs'));
-    const jobs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Job));
+
+    let jobs: Job[] = [];
+    try {
+      const snap = await getDocs(collection(db, 'jobs'));
+      jobs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Job));
+    } catch (firebaseErr) {
+      console.warn("Firestore access error, falling back to local files:", firebaseErr);
+    }
+
+    // Fallback to localJobs if Firestore has no records or failed to load
+    if (jobs.length === 0 && Array.isArray(localJobs) && localJobs.length > 0) {
+      jobs = (localJobs as any[]).map(j => ({
+        id: j.id || generateId(),
+        title: j.title || 'Oferta de Empleo',
+        source: j.source || '',
+        driveId: j.driveId || j.id, // Support driveId or fallback to id
+        company: j.company || '',
+        location: j.location || 'Salta',
+        category: j.category || inferCategory(j.title || ''),
+        description: j.description || '',
+        createdAt: j.createdAt || j.date || new Date().toISOString(),
+        date: j.date || j.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0]
+      } as Job));
+    }
+
     sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: jobs, timestamp: Date.now() }));
     return jobs;
   } catch (error) {
+    // If even our fallback failed or we got some other structural error, try local fallback as a final safety measure
+    if (Array.isArray(localJobs) && localJobs.length > 0) {
+      const fallbackJobs = (localJobs as any[]).map(j => ({
+        id: j.id || generateId(),
+        title: j.title || 'Oferta de Empleo',
+        source: j.source || '',
+        driveId: j.driveId || j.id,
+        company: j.company || '',
+        location: j.location || 'Salta',
+        category: j.category || inferCategory(j.title || ''),
+        description: j.description || '',
+        createdAt: j.createdAt || j.date || new Date().toISOString(),
+        date: j.date || j.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0]
+      } as Job));
+      return fallbackJobs;
+    }
     return handleFirestoreError(error, OperationType.LIST, 'jobs') as any;
   }
 };
