@@ -6,6 +6,8 @@ import { inferCategory, CATEGORIES, formatRelativeDate } from '../../utils';
 import { Plus, Upload, Trash2, Edit, LogOut, CheckCircle2, AlertCircle, RefreshCw, FolderTree, ArrowDownAZ, ArrowUpAZ, Image as ImageIcon } from 'lucide-react';
 import { auth, logout } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import FlyerImage from '../../components/FlyerImage';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -357,10 +359,10 @@ export default function AdminDashboard() {
   }, [jobs]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-[#E8E2DA] min-h-[70vh] p-4 sm:p-6 lg:p-8 relative">
+    <div className="bg-card rounded-2xl shadow-sm border border-line min-h-[70vh] p-4 sm:p-6 lg:p-8 relative">
       
       {msg && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${msg.type === 'success' ? 'bg-[#C7D1BC] text-[#2D5A27] border border-[#C7D1BC]' : 'bg-[#D1BCBC] text-[#5A2D2D] border border-[#D1BCBC]'}`}>
+        <div role="status" aria-live="polite" className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${msg.type === 'success' ? 'bg-positive-soft text-positive border border-positive-soft' : 'bg-danger-soft text-danger border border-danger-soft'}`}>
           {msg.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
           <span className="text-sm font-medium">{msg.text}</span>
         </div>
@@ -368,17 +370,17 @@ export default function AdminDashboard() {
 
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-8 text-sm">
         <div>
-          <h1 className="text-2xl font-bold text-[#4A3F35]">Panel de Administración</h1>
-          <p className="text-[#8C7E6F] text-sm mt-1">Gestiona las ofertas y fuentes de datos.</p>
+          <h1 className="text-2xl font-bold text-ink">Panel de Administración</h1>
+          <p className="text-muted text-sm mt-1">Gestiona las ofertas y fuentes de datos.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           {selectedIds.size > 0 && (
-            <div className="flex items-center gap-2 bg-[#F9F7F4] p-1.5 rounded-lg border border-[#E8E2DA]">
-              <span className="text-[#8C7E6F] px-2 font-medium">{selectedIds.size} sec.</span>
+            <div className="flex items-center gap-2 bg-surface p-1.5 rounded-lg border border-line">
+              <span className="text-muted px-2 font-medium">{selectedIds.size} sec.</span>
               <select 
                 value={bulkCategory} 
                 onChange={(e) => setBulkCategory(e.target.value)}
-                className="bg-white border border-[#E8E2DA] text-[#4A3F35] rounded px-2 py-1 outline-none focus:ring-1 focus:ring-[#8C7E6F]"
+                className="bg-card border border-line text-ink rounded px-2 py-1 outline-none focus:ring-1 focus:ring-brand"
               >
                 <option value="">-- Asignar Categoría --</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -386,14 +388,14 @@ export default function AdminDashboard() {
               <button 
                 onClick={handleBulkCategoryUpdate}
                 disabled={!bulkCategory || isUpdatingBulk}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#4A3F35] hover:bg-[#2D2A26] disabled:bg-gray-300 text-white font-medium rounded transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink hover:bg-ink-strong disabled:bg-gray-300 text-white font-medium rounded transition-colors"
               >
                 <FolderTree size={16} /> Mover
               </button>
               <button 
                 onClick={handleBulkDelete}
                 disabled={isUpdatingBulk}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#D1BCBC] hover:bg-[#C2A5A5] disabled:bg-gray-200 text-[#5A2D2D] font-medium rounded transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-danger-soft hover:bg-danger-soft disabled:bg-gray-200 text-danger font-medium rounded transition-colors"
                 title="Eliminar seleccionados"
               >
                 <Trash2 size={16} /> Eliminar
@@ -401,22 +403,22 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          <div className="h-6 w-px bg-[#E8E2DA] hidden sm:block"></div>
+          <div className="h-6 w-px bg-line hidden sm:block"></div>
 
-          <label className="cursor-pointer inline-flex items-center gap-2 text-sm text-[#4A3F35]" title="Usar IA para autocompletar títulos genéricos de imágenes">
-            <input type="checkbox" checked={useAIForImport} onChange={(e) => setUseAIForImport(e.target.checked)} className="rounded text-[#8B4513] focus:ring-[#8B4513]" />
+          <label className="cursor-pointer inline-flex items-center gap-2 text-sm text-ink" title="Usar IA para autocompletar títulos genéricos de imágenes">
+            <input type="checkbox" checked={useAIForImport} onChange={(e) => setUseAIForImport(e.target.checked)} className="rounded text-brand focus:ring-brand" />
             Usar IA
           </label>
 
-          <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E8E2DA] hover:bg-[#D1C7BC] text-[#4A3F35] text-sm font-medium rounded-lg transition-colors border border-transparent whitespace-nowrap ${isImporting ? 'opacity-70 cursor-wait' : ''}`}>
+          <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-line hover:bg-line-strong text-ink text-sm font-medium rounded-lg transition-colors border border-transparent whitespace-nowrap ${isImporting ? 'opacity-70 cursor-wait' : ''}`}>
             {isImporting ? <RefreshCw size={16} className="animate-spin" /> : <Upload size={16} />} 
             {isImporting ? 'Importando...' : 'Importar (Combinar)'}
             <input type="file" accept=".json" className="hidden" disabled={isImporting} onChange={(e) => handleJsonUpload(e, 'merge')} />
           </label>
-          <button onClick={openNewForm} className="inline-flex items-center gap-2 px-4 py-2 bg-[#4A3F35] hover:bg-[#2D2A26] text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
+          <button onClick={openNewForm} className="inline-flex items-center gap-2 px-4 py-2 bg-ink hover:bg-ink-strong text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
             <Plus size={16} /> Crear Oferta
           </button>
-          <button onClick={handleLogout} className="inline-flex items-center p-2 text-[#8C7E6F] hover:text-[#5A2D2D] hover:bg-[#D1BCBC] rounded-lg transition-colors" title="Cerrar Sesión">
+          <button onClick={handleLogout} className="inline-flex items-center p-2 text-muted hover:text-danger hover:bg-danger-soft rounded-lg transition-colors" title="Cerrar Sesión">
             <LogOut size={20} />
           </button>
         </div>
@@ -429,7 +431,7 @@ export default function AdminDashboard() {
             setCategoryFilter(e.target.value);
             setSelectedIds(new Set()); // clear selection on format change
           }}
-          className="border border-[#E8E2DA] bg-[#F9F7F4] text-[#4A3F35] text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#E8E2DA] w-full sm:w-auto"
+          className="border border-line bg-surface text-ink text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-line w-full sm:w-auto"
         >
           <option value="">Todas las Categorías ({jobs.length})</option>
           {uniqueCategories.map(cat => (
@@ -439,7 +441,7 @@ export default function AdminDashboard() {
         
         <button
           onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-[#F9F7F4] border border-[#E8E2DA] hover:bg-[#E8E2DA] text-[#4A3F35] text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
+          className="inline-flex items-center gap-2 px-3 py-2 bg-surface border border-line hover:bg-line text-ink text-sm font-medium rounded-lg transition-colors w-full sm:w-auto"
         >
           {sortOrder === 'desc' ? <ArrowDownAZ size={16} /> : <ArrowUpAZ size={16} />}
           {sortOrder === 'desc' ? 'Más recientes primero' : 'Más antiguas primero'}
@@ -463,15 +465,16 @@ export default function AdminDashboard() {
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-500 py-10">Cargando...</p>
+        <p className="text-center text-muted py-10">Cargando...</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
+        <div className="overflow-x-auto rounded-lg border border-line">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600 uppercase tracking-wider">
+              <tr className="bg-surface border-b border-line text-sm font-semibold text-subtle uppercase tracking-wider">
                 <th className="px-4 py-3 w-10 text-center">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
+                    aria-label="Seleccionar todas las ofertas"
                     checked={filteredJobs.length > 0 && selectedIds.size === filteredJobs.length}
                     ref={input => {
                       if (input) {
@@ -479,7 +482,7 @@ export default function AdminDashboard() {
                       }
                     }}
                     onChange={() => toggleSelectAll(filteredJobs)}
-                    className="rounded border-gray-300 text-[#4A3F35] focus:ring-[#4A3F35]"
+                    className="rounded border-line text-brand focus:ring-brand"
                   />
                 </th>
                 <th className="px-4 py-3">ID / Drive ID</th>
@@ -490,46 +493,47 @@ export default function AdminDashboard() {
                 <th className="px-4 py-3 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm text-gray-700 bg-white">
+            <tbody className="divide-y divide-line text-sm text-ink bg-card">
               {filteredJobs.map(job => (
                 <tr 
                   key={job.id} 
-                  className={`${selectedIds.has(job.id) ? 'bg-[#D1C7BC]/20' : 'hover:bg-gray-50/50'} select-none transition-colors duration-150`}
+                  className={`${selectedIds.has(job.id) ? 'bg-line-strong/20' : 'hover:bg-surface/50'} select-none transition-colors duration-150`}
                   onMouseDown={(e) => handleRowMouseDown(job.id, e)}
                   onMouseEnter={(e) => handleRowMouseEnter(job.id, e)}
                 >
                   <td className="px-4 py-3 text-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
+                      aria-label={`Seleccionar ${job.title}`}
                       checked={selectedIds.has(job.id)}
                       onChange={() => toggleSelectJob(job.id)}
-                      className="rounded border-gray-300 text-[#4A3F35] focus:ring-[#4A3F35]"
+                      className="rounded border-line text-brand focus:ring-brand"
                     />
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500 truncate max-w-[120px]" title={job.driveId || job.id}>{job.driveId || job.id}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900 line-clamp-1">{job.title}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted truncate max-w-[120px]" title={job.driveId || job.id}>{job.driveId || job.id}</td>
+                  <td className="px-4 py-3 font-medium text-ink line-clamp-1">{job.title}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface text-ink">
                       {job.category || '-'}
                     </span>
                   </td>
                   <td className="px-4 py-3">{job.company || '-'}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-gray-500 text-xs">
+                  <td className="px-4 py-3 whitespace-nowrap text-muted text-xs">
                     {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : '-'}
                   </td>
                   <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
-                    <button onClick={() => openEditForm(job)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded bg-white border border-gray-200 shadow-sm transition">
-                      <Edit size={16} />
+                    <button onClick={() => openEditForm(job)} aria-label={`Editar ${job.title}`} title="Editar" className="p-1.5 text-muted hover:text-brand rounded bg-card border border-line shadow-sm transition">
+                      <Edit size={16} aria-hidden="true" />
                     </button>
-                    <button onClick={() => handleDelete(job.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded bg-white border border-gray-200 shadow-sm transition">
-                      <Trash2 size={16} />
+                    <button onClick={() => handleDelete(job.id)} aria-label={`Eliminar ${job.title}`} title="Eliminar" className="p-1.5 text-muted hover:text-red-600 rounded bg-card border border-line shadow-sm transition">
+                      <Trash2 size={16} aria-hidden="true" />
                     </button>
                   </td>
                 </tr>
               ))}
               {filteredJobs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-gray-500">No hay ofertas que coincidan con la búsqueda.</td>
+                  <td colSpan={7} className="text-center py-10 text-muted">No hay ofertas que coincidan con la búsqueda.</td>
                 </tr>
               )}
             </tbody>
@@ -540,39 +544,30 @@ export default function AdminDashboard() {
       {/* Form Modal */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0">
-              <h2 className="text-xl font-bold text-gray-900">{editingId ? 'Editar Oferta' : 'Nueva Oferta'}</h2>
-              <button type="button" onClick={() => setIsFormOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+          <div className="bg-card rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-line flex justify-between items-center bg-card z-10 shrink-0">
+              <h2 className="text-xl font-bold text-ink">{editingId ? 'Editar Oferta' : 'Nueva Oferta'}</h2>
+              <button type="button" onClick={() => setIsFormOpen(false)} aria-label="Cerrar" className="text-muted hover:text-subtle text-2xl leading-none">&times;</button>
             </div>
-            
+
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
                {/* Left: Image Preview */}
-               <div className="w-full md:w-1/2 bg-[#F9F7F4] border-b md:border-b-0 md:border-r border-[#E8E2DA] p-6 flex flex-col items-center justify-start overflow-y-auto">
+               <div className="w-full md:w-1/2 bg-surface border-b md:border-b-0 md:border-r border-line p-6 flex flex-col items-center justify-start overflow-y-auto">
                  {(formData.driveId || formData.id) ? (
-                    <div className="relative w-full h-full flex flex-col items-center justify-start min-h-[300px]">
-                       <span className="text-xs font-semibold text-[#8C7E6F] mb-3 uppercase tracking-wider block">Vista previa del flyer</span>
-                       <img 
+                    <div className="relative w-full flex flex-col items-center justify-start min-h-[300px]">
+                       <span className="text-xs font-semibold text-muted mb-3 uppercase tracking-wider block">Vista previa del flyer</span>
+                       <FlyerImage
+                         mode="natural"
+                         fallbackSize="lg"
                          src={`https://drive.google.com/thumbnail?id=${formData.driveId || formData.id}&sz=w800`}
-                         alt="Previsualización"
-                         className="max-h-[500px] w-auto object-contain rounded-lg shadow-sm border border-[#E8E2DA]"
-                         referrerPolicy="no-referrer"
-                         onError={(e) => {
-                            const target = e.currentTarget;
-                            target.style.display = 'none';
-                            target.nextElementSibling?.classList.remove('hidden');
-                         }}
+                         alt="Previsualización del flyer"
+                         imgClassName="max-h-[500px] rounded-lg shadow-sm border border-line"
                        />
-                       <div className="hidden flex-col items-center justify-center text-center p-6 bg-white border border-red-200 rounded-lg max-w-xs mt-4">
-                         <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
-                         <p className="text-sm font-medium text-gray-800">No se pudo cargar la imagen</p>
-                         <p className="text-xs text-gray-500 mt-1">Verifica que el Drive ID sea correcto o que el archivo tenga permisos de lectura pública.</p>
-                       </div>
                     </div>
                  ) : (
-                    <div className="flex flex-col items-center justify-center text-center text-[#8C7E6F] min-h-[300px] h-full">
-                       <ImageIcon className="w-12 h-12 mb-3 opacity-50" />
-                       <p className="text-sm">Ingresa un ID de Google Drive para ver la previsualización</p>
+                    <div className="flex flex-col items-center justify-center text-center text-muted min-h-[300px] h-full">
+                       <ImageIcon className="w-12 h-12 mb-3 opacity-50" aria-hidden="true" />
+                       <p className="text-sm">Ingresá un ID de Google Drive para ver la previsualización</p>
                     </div>
                  )}
                </div>
@@ -581,119 +576,93 @@ export default function AdminDashboard() {
                <div className="w-full md:w-1/2 flex flex-col overflow-y-auto">
                  <form id="job-form" onSubmit={handleSubmitForm} className="p-6 flex flex-col gap-4">
                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
-                      <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none" />
+                      <label className="block text-sm font-medium text-ink mb-1">Título *</label>
+                      <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} required className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-brand outline-none" />
                    </div>
                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Drive ID (Imágen/Flyer)</label>
-                      <input type="text" value={formData.driveId || formData.id || ''} onChange={e => setFormData({...formData, driveId: e.target.value})} placeholder="ej: 1iHcgzhyg-nLXS..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none font-mono text-sm" />
-                      <p className="text-xs text-gray-500 mt-1">ID del archivo en Google Drive para mostrar el flyer.</p>
+                      <label className="block text-sm font-medium text-ink mb-1">Drive ID (Imágen/Flyer)</label>
+                      <input type="text" value={formData.driveId || formData.id || ''} onChange={e => setFormData({...formData, driveId: e.target.value})} placeholder="ej: 1iHcgzhyg-nLXS..." className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-brand outline-none font-mono text-sm" />
+                      <p className="text-xs text-muted mt-1">ID del archivo en Google Drive para mostrar el flyer.</p>
                    </div>
                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">URL / Link a Postulación *</label>
-                      <input type="url" value={formData.source || ''} onChange={e => setFormData({...formData, source: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none" />
+                      <label className="block text-sm font-medium text-ink mb-1">URL / Link a Postulación *</label>
+                      <input type="url" value={formData.source || ''} onChange={e => setFormData({...formData, source: e.target.value})} required className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-brand outline-none" />
                    </div>
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                        <select value={formData.category || CATEGORIES[CATEGORIES.length - 1]} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none bg-white">
+                        <label className="block text-sm font-medium text-ink mb-1">Categoría</label>
+                        <select value={formData.category || CATEGORIES[CATEGORIES.length - 1]} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-brand outline-none bg-card">
                           {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                      </div>
                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
-                        <input type="text" value={formData.location || ''} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none" />
+                        <label className="block text-sm font-medium text-ink mb-1">Ubicación</label>
+                        <input type="text" value={formData.location || ''} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-brand outline-none" />
                      </div>
                    </div>
                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
-                      <input type="text" value={formData.company || ''} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none" />
+                      <label className="block text-sm font-medium text-ink mb-1">Empresa</label>
+                      <input type="text" value={formData.company || ''} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-brand outline-none" />
                    </div>
                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Descripción corta</label>
-                      <textarea value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8C7E6F] outline-none resize-none"></textarea>
+                      <label className="block text-sm font-medium text-ink mb-1">Descripción corta</label>
+                      <textarea value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-brand outline-none resize-none"></textarea>
                    </div>
                  </form>
                </div>
             </div>
             
-            <div className="p-4 sm:p-6 border-t border-gray-100 flex justify-end gap-3 bg-white shrink-0">
-                <button type="button" onClick={() => setIsFormOpen(false)} className="px-5 py-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
-                <button type="submit" form="job-form" className="px-5 py-2.5 bg-[#4A3F35] text-white rounded-lg font-medium hover:bg-[#2D2A26] transition-colors">Guardar</button>
+            <div className="p-4 sm:p-6 border-t border-line flex justify-end gap-3 bg-card shrink-0">
+                <button type="button" onClick={() => setIsFormOpen(false)} className="px-5 py-2.5 text-subtle bg-surface hover:bg-line rounded-lg font-medium transition-colors">Cancelar</button>
+                <button type="submit" form="job-form" className="px-5 py-2.5 bg-ink text-white rounded-lg font-medium hover:bg-ink-strong transition-colors">Guardar</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Confirm Dialog */}
-      {confirmDialog && confirmDialog.isOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar acción</h3>
-              <p className="text-gray-600">{confirmDialog.message}</p>
-            </div>
-            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
-              <button 
-                onClick={() => setConfirmDialog(null)}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-                disabled={isUpdatingBulk}
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={async () => {
-                  const action = confirmDialog.onConfirm;
-                  setConfirmDialog(null);
-                  await action();
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
-                disabled={isUpdatingBulk}
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmDialog?.isOpen}
+        message={confirmDialog?.message || ''}
+        loading={isUpdatingBulk}
+        zClassName="z-[60]"
+        onCancel={() => setConfirmDialog(null)}
+        onConfirm={async () => {
+          const action = confirmDialog?.onConfirm;
+          setConfirmDialog(null);
+          await action?.();
+        }}
+      />
 
       {/* Import Preview Modal */}
       {isImportPreviewOpen && (
         <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0">
-              <h2 className="text-xl font-bold text-gray-900">Previsualizar Importación ({importPreviewData.length} empleos)</h2>
-              <button type="button" onClick={() => setIsImportPreviewOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+          <div className="bg-card rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-line flex justify-between items-center bg-card z-10 shrink-0">
+              <h2 className="text-xl font-bold text-ink">Previsualizar Importación ({importPreviewData.length} empleos)</h2>
+              <button type="button" onClick={() => setIsImportPreviewOpen(false)} aria-label="Cerrar" className="text-muted hover:text-subtle text-2xl leading-none">&times;</button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 bg-[#F9F7F4]">
+            <div className="flex-1 overflow-y-auto p-6 bg-surface">
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {importPreviewData.map((job, idx) => (
-                    <div key={idx} className="bg-white border border-[#E8E2DA] rounded-lg shadow-sm overflow-hidden flex flex-col">
-                      <div className="h-56 bg-[#F9F7F4] flex items-center justify-center relative border-b border-[#E8E2DA] p-2">
+                    <div key={idx} className="bg-card border border-line rounded-lg shadow-sm overflow-hidden flex flex-col">
+                      <div className="h-56 relative border-b border-line">
                          {(job.driveId || job.id) ? (
-                            <img 
+                            <FlyerImage
                                src={`https://drive.google.com/thumbnail?id=${job.driveId || job.id}&sz=w600`}
-                               alt="Flyer"
-                               className="h-full w-full object-contain"
-                               referrerPolicy="no-referrer"
-                               onError={(e) => {
-                                 const target = e.currentTarget;
-                                 target.style.display = 'none';
-                                 target.nextElementSibling?.classList.remove('hidden');
-                               }}
+                               alt={`Flyer de ${job.title || 'la oferta'}`}
+                               className="absolute inset-0"
                             />
                          ) : (
-                            <ImageIcon className="w-10 h-10 text-gray-300" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-surface">
+                              <ImageIcon className="w-10 h-10 text-line-strong" aria-hidden="true" />
+                            </div>
                          )}
-                         <div className="hidden absolute inset-0 flex flex-col items-center justify-center bg-[#F9F7F4] text-gray-400 p-4 text-center">
-                            <AlertCircle className="w-8 h-8 mb-2 text-red-400" />
-                            <span className="text-xs">Preview no disponible</span>
-                         </div>
                       </div>
                       <div className="p-4 flex flex-col gap-3">
                          <div>
-                           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Título de la oferta</label>
+                           <label className="block text-xs font-semibold text-muted mb-1 uppercase tracking-wider">Título de la oferta</label>
                            <input 
                               type="text" 
                               value={job.title || ''} 
@@ -702,12 +671,12 @@ export default function AdminDashboard() {
                                  newData[idx] = { ...newData[idx], title: e.target.value };
                                  setImportPreviewData(newData);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#8C7E6F] outline-none transition-shadow"
+                              className="w-full px-3 py-2 border border-line rounded-md text-sm focus:ring-2 focus:ring-brand outline-none transition-shadow"
                               placeholder="Ej: Administrador contable"
                            />
                          </div>
                          <div>
-                           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Empresa (Opcional)</label>
+                           <label className="block text-xs font-semibold text-muted mb-1 uppercase tracking-wider">Empresa (Opcional)</label>
                            <input 
                               type="text" 
                               value={job.company || ''} 
@@ -716,7 +685,7 @@ export default function AdminDashboard() {
                                  newData[idx] = { ...newData[idx], company: e.target.value };
                                  setImportPreviewData(newData);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#8C7E6F] outline-none transition-shadow"
+                              className="w-full px-3 py-2 border border-line rounded-md text-sm focus:ring-2 focus:ring-brand outline-none transition-shadow"
                               placeholder="Ej: Consultora X"
                            />
                          </div>
@@ -736,19 +705,19 @@ export default function AdminDashboard() {
                  ))}
                </div>
                {importPreviewData.length === 0 && (
-                 <div className="text-center py-20 text-gray-500 font-medium">
+                 <div className="text-center py-20 text-muted font-medium">
                     No hay empleos para importar.
                  </div>
                )}
             </div>
 
-            <div className="p-4 sm:p-6 border-t border-gray-100 flex justify-end gap-3 bg-white shrink-0">
-                <button type="button" onClick={() => setIsImportPreviewOpen(false)} className="px-5 py-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">Cancelar</button>
+            <div className="p-4 sm:p-6 border-t border-line flex justify-end gap-3 bg-card shrink-0">
+                <button type="button" onClick={() => setIsImportPreviewOpen(false)} className="px-5 py-2.5 text-subtle bg-surface hover:bg-line rounded-lg font-medium transition-colors">Cancelar</button>
                 <button 
                   type="button" 
                   onClick={handleConfirmImport} 
                   disabled={importPreviewData.length === 0 || isImporting}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4A3F35] text-white rounded-lg font-medium hover:bg-[#2D2A26] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-ink text-white rounded-lg font-medium hover:bg-ink-strong transition-colors disabled:opacity-50"
                 >
                   {isImporting ? <RefreshCw size={18} className="animate-spin" /> : <Upload size={18} />}
                   Confirmar Importación ({importPreviewData.length})
