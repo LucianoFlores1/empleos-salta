@@ -11,6 +11,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/admin/Login';
 import { Briefcase, Linkedin, MessageCircle, AlertTriangle, X, Mail, Code, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Analytics } from '@vercel/analytics/react';
 
 function LegalDisclaimerDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -206,7 +207,7 @@ export default function App() {
           <Route path="admin" element={<AdminDashboard />} />
         </Route>
       </Routes>
+      <Analytics />
     </BrowserRouter>
   );
 }
-
