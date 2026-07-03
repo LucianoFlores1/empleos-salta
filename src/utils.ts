@@ -16,6 +16,45 @@ export const CATEGORIES = [
   'Otros'
 ];
 
+/**
+ * Traduce una categoría (en español) a una búsqueda en inglés para Pexels,
+ * que devuelve resultados mucho más relevantes en inglés.
+ * Se usa para generar una "portada" cuando el flyer falta o es de baja calidad.
+ */
+const STOCK_QUERIES: Record<string, string> = {
+  'Administración': 'office desk work',
+  'Salud y Cuidado': 'nurse hospital care',
+  'Minería y Campo': 'mining field worker',
+  'Ventas y Atención': 'retail store sales',
+  'Tecnologías': 'software developer computer',
+  'Logística y Transporte': 'delivery truck logistics',
+  'Educación': 'teacher classroom',
+  'Gastronomía': 'restaurant chef kitchen',
+  'Oficios y Mantenimiento': 'technician maintenance tools',
+  'Construcción y Arquitectura': 'construction worker site',
+  'Diseño y Marketing': 'designer creative workspace',
+  'Estética y Belleza': 'beauty salon hair',
+  'Deportes y Recreación': 'fitness gym training',
+  'Legales': 'lawyer office documents',
+  'Otros': 'professional work office',
+};
+
+export function categoryToStockQuery(category?: string): string {
+  return (category && STOCK_QUERIES[category]) || STOCK_QUERIES['Otros'];
+}
+
+/**
+ * Normaliza el título de un empleo: todo en minúscula y la primera letra en
+ * mayúscula (sentence case), respetando acentos. Los títulos se cargan en
+ * cualquier formato (MAYÚS, minús, mezcla) y así se ven uniformes.
+ * Ej: "CHEF PROFESIONAL" → "Chef profesional", "empleada" → "Empleada".
+ */
+export function formatJobTitle(raw?: string): string {
+  if (!raw) return '';
+  const s = raw.trim().toLocaleLowerCase('es-AR');
+  return s.replace(/\p{L}/u, (c) => c.toLocaleUpperCase('es-AR'));
+}
+
 export function inferCategory(title: string): string {
   if (!title) return 'Otros';
   const t = title.toLowerCase();

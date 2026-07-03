@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
@@ -32,6 +33,47 @@ app.get('/', async (req, res, next) => {
     // unless we place it carefully. For simplicity locally, let Vite handle it, 
     // only on Vercel the function runs.
     next();
+});
+
+// Proxy a Pexels: genera portadas cuando un flyer falta o es de baja calidad.
+// La API key vive solo acá (server) y nunca llega al navegador.
+const stockCache = new Map<string, { data: any; ts: number }>();
+const STOCK_TTL = 1000 * 60 * 60 * 24; // 24 h
+
+app.get('/api/stock-image', async (req, res) => {
+  try {
+    const query = ((req.query.q as string) || 'professional work').slice(0, 80);
+    const key = process.env.PEXELS_API_KEY;
+    if (!key) return res.status(503).json({ error: 'PEXELS_API_KEY no configurada' });
+
+    const cached = stockCache.get(query);
+    if (cached && Date.now() - cached.ts < STOCK_TTL) {
+      res.set('Cache-Control', 'public, max-age=86400');
+      return res.json(cached.data);
+    }
+
+    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=12&orientation=landscape`;
+    const r = await fetch(url, { headers: { Authorization: key } });
+    if (!r.ok) return res.status(r.status).json({ error: `Pexels respondió ${r.status}` });
+
+    const data: any = await r.json();
+    const photos = (data.photos || []).map((p: any) => ({
+      url: p.src?.large || p.src?.medium || p.src?.original,
+      avgColor: p.avg_color,
+      photographer: p.photographer,
+      photographerUrl: p.photographer_url,
+      alt: p.alt || '',
+    }));
+    if (!photos.length) return res.status(404).json({ error: 'sin resultados' });
+
+    const payload = { photos };
+    stockCache.set(query, { data: payload, ts: Date.now() });
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.json(payload);
+  } catch (error: any) {
+    console.error('stock-image error:', error);
+    res.status(500).json({ error: error.message || 'stock-image failed' });
+  }
 });
 
 app.post('/api/enhance-jobs', async (req, res) => {
