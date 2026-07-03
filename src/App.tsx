@@ -16,6 +16,8 @@ import { MessageCircle, AlertTriangle, X, Mail, Code, Users } from 'lucide-react
 import { motion, AnimatePresence } from 'motion/react';
 import Modal from './components/Modal';
 import ThemeToggle from './components/ThemeToggle';
+import { Analytics } from '@vercel/analytics/react';
+
 
 function LegalDisclaimerDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -271,7 +273,7 @@ export default function App() {
           <Route path="admin" element={<AdminDashboard />} />
         </Route>
       </Routes>
+      <Analytics />
     </BrowserRouter>
   );
 }
-
