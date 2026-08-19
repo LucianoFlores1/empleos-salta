@@ -63,7 +63,6 @@ export default function Home() {
   }, [page]);
 
   const categories = useMemo(() => {
-    // Keep empty categories if they are in CATEGORIES, but add any others that might exist in jobs
     const cats = new Set([...CATEGORIES, ...jobs.map(j => j.category || 'Otros').filter(Boolean)]);
     return Array.from(cats);
   }, [jobs]);
@@ -92,7 +91,7 @@ export default function Home() {
     result = [...result].sort((a, b) => {
       if (sort === 'az') return a.title.localeCompare(b.title);
       if (sort === 'recent') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      return 0; // 'relevant' can just fallback to recent in this prototype
+      return 0; 
     });
 
     return result;
@@ -202,8 +201,8 @@ export default function Home() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col gap-6 w-full max-w-full overflow-hidden">
         <div className="flex flex-col gap-4 mb-2">
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between w-full">
-            <div className="w-full relative sm:max-w-[400px]">
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-start w-full">
+            <div className="w-full max-w-[320px] sm:max-w-[400px] relative">
               <label htmlFor="job-search" className="sr-only">Buscar empleo</label>
               <input
                 id="job-search"
@@ -258,7 +257,7 @@ export default function Home() {
               )}
             </AnimatePresence>
             
-            <div role="group" aria-label="Modo de vista" className="flex gap-1 bg-card p-1 rounded-xl shadow-sm border border-line items-center min-w-max hidden sm:flex h-[46px]">
+            <div role="group" aria-label="Modo de vista" className="flex gap-1 bg-card p-1 rounded-xl shadow-sm border border-line items-center md:flex min-w-max hidden sm:flex h-[46px]">
               <button
                 type="button"
                 onClick={() => setViewMode('default')}
@@ -278,26 +277,26 @@ export default function Home() {
                 <Grid size={18} aria-hidden="true" />
               </button>
             </div>
-            {/* View Mode Toggle Mobile */}
-            <div className="flex gap-1 bg-card p-1 rounded-xl shadow-sm border border-line sm:hidden h-[46px] items-center">
+            
+            <div className="flex gap-1 bg-card p-1 rounded-xl shadow-sm border border-line sm:hidden">
               <button
                 type="button"
                 aria-label={viewMode === 'default' ? 'Cambiar a vista de cuadrícula' : 'Cambiar a vista de lista'}
                 onClick={() => setViewMode(viewMode === 'default' ? 'compact' : 'default')}
-                className="w-[36px] h-[36px] flex items-center justify-center text-ink bg-line rounded-lg"
+                className="p-2 text-ink bg-line rounded-lg"
               >
                 {viewMode === 'default' ? <Grid size={18} aria-hidden="true" /> : <List size={18} aria-hidden="true" />}
               </button>
             </div>
 
-            <div role="group" aria-label="Ordenar ofertas" className="flex gap-1 bg-surface p-1 rounded-xl flex-1 sm:flex-none border border-line h-[46px] items-center">
+            <div role="group" aria-label="Ordenar ofertas" className="flex gap-1 bg-surface p-1 rounded-xl w-full sm:w-auto border border-line">
               {([['recent', 'Recientes'], ['az', 'A-Z']] as const).map(([val, label]) => (
                 <button
                   key={val}
                   type="button"
                   onClick={() => { setSort(val); setPage(1); }}
                   aria-pressed={sort === val}
-                  className={`px-4 h-[36px] flex-1 sm:flex-none flex items-center justify-center text-[11px] uppercase tracking-wider font-bold rounded-lg transition-colors ${sort === val ? 'bg-card shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
+                  className={`px-4 py-2 flex-1 sm:flex-none text-[11px] uppercase tracking-wider font-bold rounded-lg transition-colors ${sort === val ? 'bg-card shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
                 >
                   {label}
                 </button>

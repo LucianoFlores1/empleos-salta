@@ -1,15 +1,9 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { BrowserRouter, Routes, Route, Link, Outlet, useLocation } from 'react-router-dom';
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import Home from './pages/Home';
 import JobDetails from './pages/JobDetails';
 
 // El panel de administración solo lo usan los admins → se carga bajo demanda
-// y no pesa en el bundle inicial del visitante común.
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const Login = lazy(() => import('./pages/admin/Login'));
 import { MessageCircle, AlertTriangle, X, Mail, Code, Users, Coffee } from 'lucide-react';
@@ -102,7 +96,6 @@ function Layout() {
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
             <div className="relative w-9 h-9 sm:w-[52px] sm:h-[52px] shrink-0 grid place-items-center">
-              {/* glow solar: aparece al pasar el mouse, como el sol del logo */}
               <span
                 aria-hidden="true"
                 className="absolute inset-0 rounded-full bg-amber-400/0 blur-xl scale-50 transition-all duration-500 group-hover:bg-amber-400/40 group-hover:scale-125"
@@ -139,10 +132,13 @@ function Layout() {
                 Donar
               </span>
             </a>
+            <Link to="/admin" className="px-2 py-1.5 sm:px-3 text-muted text-xs font-medium hover:text-ink hover:bg-canvas rounded-lg transition-colors">
+              Admin
+            </Link>
           </div>
         </div>
       </header>
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 pb-4 pt-0 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8">
         <Suspense fallback={<div className="py-24 text-center text-muted text-sm">Cargando…</div>}>
           <motion.div
             key={location.pathname}
@@ -155,7 +151,7 @@ function Layout() {
         </Suspense>
       </main>
 
-      {/* Floating Action Button for Contact/About */}
+      {/* Botón flotante Contacto/Nosotros */}
       <div className="fixed bottom-6 right-4 sm:right-6 z-50 flex flex-col items-end" ref={contactRef}>
         <AnimatePresence>
           {showContact && (
@@ -246,9 +242,9 @@ function Layout() {
 
       <footer className="mt-10 border-t border-line bg-surface/60">
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 py-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.2fr_1fr_1.4fr] gap-10 md:gap-8">
+          <div className="grid gap-8 md:grid-cols-[1.2fr_1fr_1.4fr]">
             {/* Marca */}
-            <div className="flex flex-col items-start text-left gap-4">
+            <div className="flex flex-col items-center md:items-start text-center md:text-left gap-3">
               <div className="flex items-center gap-2.5">
                 <img src="/logo.png" alt="" width={40} height={40} className="w-10 h-10 object-contain shrink-0" aria-hidden="true" />
                 <div>
@@ -260,10 +256,10 @@ function Layout() {
             </div>
 
             {/* Contacto */}
-            <div className="flex flex-col items-start text-left gap-3">
+            <div className="flex flex-col items-center md:items-start gap-3">
               <h2 className="text-[11px] font-bold uppercase tracking-wider text-subtle">Contacto</h2>
-              <p className="text-xs text-muted max-w-[18rem]">¿Querés publicar una búsqueda, o desarrollar tu propia app o sitio web? Contáctame.</p>
-              <div className="flex flex-col gap-2 w-full max-w-[18rem]">
+              <p className="text-[11px] text-muted leading-relaxed text-center md:text-left max-w-[15rem]">¿Querés publicar una búsqueda o proponer una alianza?</p>
+              <div className="flex flex-col gap-2 w-full max-w-[15rem]">
                 <a href="mailto:lucianorafaelflores@gmail.com" className="group/c inline-flex items-center gap-2 text-xs font-medium text-subtle bg-card border border-line rounded-lg px-3 py-2 hover:border-brand hover:text-brand transition-colors">
                   <Mail className="w-4 h-4 shrink-0 text-muted group-hover/c:text-brand transition-colors" aria-hidden="true" />
                   <span className="truncate">lucianorafaelflores@gmail.com</span>
@@ -276,16 +272,16 @@ function Layout() {
             </div>
 
             {/* Aviso legal */}
-            <div className="flex flex-col items-start text-left gap-3 sm:col-span-2 md:col-span-1">
+            <div className="flex flex-col items-center md:items-start gap-3">
               <h2 className="text-[11px] font-bold uppercase tracking-wider text-subtle">Aviso legal</h2>
-              <p className="text-[11px] text-muted leading-relaxed max-w-[24rem]">
+              <p className="text-[11px] text-muted leading-relaxed text-center md:text-left">
                 Este portal es un espacio de recopilación y difusión de ofertas de empleo de terceros. No representamos a las empresas contratantes ni participamos en los procesos de selección. Verificá la autenticidad de cada propuesta antes de compartir tus datos personales.
               </p>
             </div>
           </div>
 
           {/* Barra inferior */}
-          <div className="mt-9 pt-5 border-t border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-2 text-[11px] text-muted">
+          <div className="mt-9 pt-5 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-muted">
             <p>&copy; {new Date().getFullYear()} Empleos Salta — Todos los derechos reservados.</p>
             <p className="flex items-center gap-1.5">
               Desarrollado por
@@ -310,7 +306,7 @@ export default function App() {
           <Route path="admin" element={<AdminDashboard />} />
         </Route>
       </Routes>
+      <Analytics />
     </BrowserRouter>
   );
 }
-

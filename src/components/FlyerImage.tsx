@@ -70,7 +70,18 @@ export default function FlyerImage({
 
   return (
     <div className={`relative overflow-hidden bg-surface ${className}`}>
-      {/* Flyer recortado (object-cover) */}
+      {/* Fondo borroso: el mismo flyer, recortado y difuminado (decorativo) */}
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        decoding="async"
+        fetchPriority="low"
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-50 saturate-150"
+      />
+      {/* Flyer completo, siempre visible sin recorte */}
       <img
         src={src}
         alt={alt}
@@ -78,7 +89,7 @@ export default function FlyerImage({
         decoding="async"
         referrerPolicy="no-referrer"
         onError={() => setFailed(true)}
-        className={`relative z-10 w-full h-full object-cover ${imgClassName}`}
+        className={`relative z-10 w-full h-full object-contain ${imgClassName}`}
       />
     </div>
   );

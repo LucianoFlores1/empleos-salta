@@ -4,7 +4,7 @@ import { categoryToStockQuery } from '../utils';
 import { fetchStockPhoto, StockPhoto } from '../lib/stock';
 
 /** Si el flyer carga con menos de este ancho, se considera baja resolución. */
-const MIN_FLYER_WIDTH = 100;
+const MIN_FLYER_WIDTH = 380;
 
 interface CardCoverProps {
   job: Job;
@@ -59,7 +59,18 @@ export default function CardCover({ job, imgClassName = '' }: CardCoverProps) {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-surface">
-      {/* Flyer recortado (object-cover) como era originalmente */}
+      {/* Fondo borroso del propio flyer */}
+      <img
+        src={flyerUrl}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        decoding="async"
+        fetchPriority="low"
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-50 saturate-150"
+      />
+      {/* Flyer completo, sin recorte */}
       <img
         src={flyerUrl}
         alt={job.title}
@@ -71,7 +82,7 @@ export default function CardCover({ job, imgClassName = '' }: CardCoverProps) {
           const w = e.currentTarget.naturalWidth;
           if (w && w < MIN_FLYER_WIDTH) setUseCover(true);
         }}
-        className={`relative z-10 w-full h-full object-cover ${imgClassName}`}
+        className={`relative z-10 w-full h-full object-contain ${imgClassName}`}
       />
     </div>
   );
