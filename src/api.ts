@@ -55,8 +55,15 @@ export const getJobs = async (): Promise<Job[]> => {
         return data;
       }
     }
-    const snap = await getDocs(collection(db, 'jobs'));
-    const jobs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Job));
+
+    let jobs: Job[] = [];
+    try {
+      const snap = await getDocs(collection(db, 'jobs'));
+      jobs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Job));
+    } catch (firebaseErr) {
+      console.warn("Firestore access error, falling back to local files:", firebaseErr);
+    }
+
     sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: jobs, timestamp: Date.now() }));
     return jobs;
   } catch (error) {
@@ -67,7 +74,9 @@ export const getJobs = async (): Promise<Job[]> => {
 export const getJob = async (id: string): Promise<Job> => {
   try {
     const snap = await getDoc(doc(db, 'jobs', id));
-    if (!snap.exists()) throw new Error('Not found');
+    if (!snap.exists()) {
+       throw new Error('Not found');
+    }
     return { ...snap.data(), id: snap.id } as Job;
   } catch (error) {
     return handleFirestoreError(error, OperationType.GET, `jobs/${id}`) as any;

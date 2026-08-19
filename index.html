@@ -3,7 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
     <title>Empleos Salta | Ofertas de Trabajo y Oportunidades Laborales</title>
+
+    <!-- Evita el "flash" de tema claro: aplica dark antes de pintar -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+          if (dark) {
+            document.documentElement.classList.add('dark');
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', '#211b15');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <!-- Tipografías: Bricolage Grotesque (títulos) + Plus Jakarta Sans (texto) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+    />
     
     <!-- Meta etiquetas de SEO -->
     <meta name="description" content="Descubrí las mejores ofertas de empleo y oportunidades laborales en la provincia de Salta. Buscá trabajo en Salta Capital y el interior de forma rápida y sencilla." />

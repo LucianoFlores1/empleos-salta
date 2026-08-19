@@ -1,6 +1,121 @@
 @import "tailwindcss";
 
+/* Habilita la variante `dark:` por clase en <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Design tokens — paleta de marca Empleos Salta
+   Usar como utilidades: bg-brand, text-ink, border-line, bg-card…
+   Los valores se redefinen en .dark (ver abajo) y como todas las
+   utilidades referencian var(--color-*), el tema se invierte solo.
+   ============================================================ */
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand: #8b4513;        /* marrón principal */
+  --color-brand-dark: #6a340e;   /* hover / activo */
+  --color-brand-soft: #fff9e6;   /* fondo cálido suave */
+
+  --color-ink: #4a3f35;          /* títulos / texto fuerte */
+  --color-ink-strong: #2d2a26;   /* texto más oscuro */
+  --color-subtle: #6b5e4f;       /* texto secundario */
+  --color-muted: #8c7e6f;        /* texto terciario / placeholders */
+
+  --color-canvas: #fdfcfb;       /* fondo de página */
+  --color-card: #ffffff;         /* tarjetas / header / modales */
+  --color-surface: #f9f7f4;      /* paneles suaves */
+  --color-line: #e8e2da;         /* bordes */
+  --color-line-strong: #d1c7bc;  /* bordes marcados */
+
+  /* feedback (tonos apagados acordes a la marca) */
+  --color-positive: #2d5a27;
+  --color-positive-soft: #c7d1bc;
+  --color-danger: #b3261e;
+  --color-danger-soft: #f4dedc;
+}
+
+/* ============================================================
+   Tema oscuro — cálido, mantiene la identidad de marca.
+   Va después del @theme para ganar en orden de cascada.
+   ============================================================ */
+.dark {
+  color-scheme: dark;
+
+  --color-brand: #cb8350;        /* marrón aclarado para contraste */
+  --color-brand-dark: #b06c3a;
+  --color-brand-soft: #2a2016;
+
+  --color-ink: #f0e9e0;
+  --color-ink-strong: #fbf7f1;
+  --color-subtle: #c6bbac;
+  --color-muted: #9c8e7e;
+
+  --color-canvas: #15110d;
+  --color-card: #211b15;
+  --color-surface: #2a221b;
+  --color-line: #38302a;
+  --color-line-strong: #4b4038;
+
+  --color-positive: #b8d1ab;
+  --color-positive-soft: #25361d;
+  --color-danger: #f1b5b0;
+  --color-danger-soft: #3a201d;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink-strong);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* el cambio de tema (sin View Transition) igual se ve suave */
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+  /* Títulos con la fuente display, más caracter */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  /* Foco visible coherente en todos los elementos interactivos */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* ============================================================
+   Revelado circular del cambio de tema (View Transitions API)
+   El tema nuevo se descubre desde el punto del click (--vt-x/y)
+   con un clip-path circular que crece hasta cubrir todo (--vt-r).
+   ============================================================ */
+@keyframes vt-circle-in {
+  from { clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 50%)); }
+  to   { clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 50%)); }
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 0;
+}
+::view-transition-new(root) {
+  z-index: 1;
+  animation: vt-circle-in 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
   .no-spinners {
     -moz-appearance: textfield;
   }
@@ -8,5 +123,22 @@
   .no-spinners::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Respetar la preferencia de movimiento reducido del sistema */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
