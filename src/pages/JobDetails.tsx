@@ -6,7 +6,7 @@ import { Job } from '../types';
 import { getJob, deleteJob } from '../api';
 import { inferCategory, formatRelativeDate, formatJobTitle } from '../utils';
 import { ArrowLeft, MapPin, Building, Calendar, Share2, ExternalLink, Image as ImageIcon, Edit2, Trash2 } from 'lucide-react';
-import { auth } from '../lib/firebase';
+import { auth, checkIsAdmin } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import ConfirmDialog from '../components/ConfirmDialog';
 import FlyerImage from '../components/FlyerImage';
@@ -26,8 +26,13 @@ export default function JobDetails() {
   const [copyMsg, setCopyMsg] = useState(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, user => {
-      setIsAdmin(!!user);
+    const unsub = onAuthStateChanged(auth, async user => {
+      if (user) {
+        const isAdm = await checkIsAdmin(user.uid);
+        setIsAdmin(isAdm);
+      } else {
+        setIsAdmin(false);
+      }
     });
     return () => unsub();
   }, []);

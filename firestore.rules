@@ -28,11 +28,7 @@ service cloud.firestore {
 
     match /admins/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
-      // Allow the specific developer email to bootstrap admin privileges
-      allow write: if isSignedIn() && (
-        isAdmin() || 
-        (request.auth.token.email_verified == true && request.auth.token.email == 'chisipufli.chisito@gmail.com')
-      );
+      allow write: if false;
     }
 
     match /jobs/{jobId} {

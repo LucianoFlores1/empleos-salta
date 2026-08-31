@@ -4,7 +4,7 @@ import { Job } from '../../types';
 import { getJobs, deleteJob, importJobs, createJob, updateJob, bulkUpdateJobsCategory, bulkDeleteJobs } from '../../api';
 import { inferCategory, CATEGORIES, formatRelativeDate } from '../../utils';
 import { Plus, Upload, Trash2, Edit, LogOut, CheckCircle2, AlertCircle, RefreshCw, FolderTree, ArrowDownAZ, ArrowUpAZ, Image as ImageIcon } from 'lucide-react';
-import { auth, logout } from '../../lib/firebase';
+import { auth, logout, checkIsAdmin } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import FlyerImage from '../../components/FlyerImage';
@@ -39,11 +39,16 @@ export default function AdminDashboard() {
   const [confirmDialog, setConfirmDialog] = useState<{isOpen: boolean, message: string, onConfirm: () => void} | null>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         navigate('/login');
       } else {
-        loadData();
+        const isAdm = await checkIsAdmin(user.uid);
+        if (!isAdm) {
+          navigate('/login');
+        } else {
+          loadData();
+        }
       }
     });
     return () => unsub();

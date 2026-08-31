@@ -1,57 +1,7 @@
 import { Job } from './types';
-import { db, auth, isFirebaseConfigured } from './lib/firebase';
+import { db, auth } from './lib/firebase';
 import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { inferCategory } from './utils';
-
-// ── Modo dev (sin Firebase) ──────────────────────────────────────────────
-// Cuando no hay .env configurado, la app muestra estas ofertas de ejemplo
-// para poder ver el diseño localmente. No se escribe nada en ninguna base.
-const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
-
-const MOCK_JOBS: Job[] = [
-  // Tamaños variados a propósito (vertical, cuadrado, panorámico) para
-  // simular los flyers reales de Drive y ver cómo se normalizan.
-  { id: 'demo-1', previewUrl: 'https://picsum.photos/seed/demo-1/400/600', title: 'Recepcionista administrativa', company: 'Estudio Contable Norte', location: 'Salta Capital', category: 'Administración', source: '#', createdAt: daysAgo(0), description: 'Atención al público, agenda y manejo de documentación. Se valora experiencia previa en estudios contables.' },
-  { id: 'demo-2', previewUrl: 'https://picsum.photos/seed/demo-2/600/400', title: 'Desarrollador/a Frontend React', company: 'TechSalta', location: 'Remoto', category: 'Tecnologías', source: '#', createdAt: daysAgo(1) },
-  { id: 'demo-3', previewUrl: 'https://picsum.photos/seed/demo-3/500/500', title: 'Vendedor/a de salón', company: 'Mueblería El Roble', location: 'San Lorenzo', category: 'Ventas y Atención', source: '#', createdAt: daysAgo(3) },
-  { id: 'demo-4', previewUrl: 'https://picsum.photos/seed/demo-4/380/620', title: 'Enfermero/a profesional', company: 'Clínica del Valle', location: 'Salta Capital', category: 'Salud y Cuidado', source: '#', createdAt: daysAgo(5) },
-  { id: 'demo-5', previewUrl: 'https://picsum.photos/seed/demo-5/820/320', title: 'Chofer de reparto', company: 'Distribuidora Andina', location: 'Cerrillos', category: 'Logística y Transporte', source: '#', createdAt: daysAgo(8) },
-  { id: 'demo-6', previewUrl: 'https://picsum.photos/seed/demo-6/450/600', title: 'Cocinero/a para parrilla', company: 'Restó La Posta', location: 'Salta Capital', category: 'Gastronomía', source: '#', createdAt: daysAgo(12), description: 'Turno noche. Experiencia en parrilla y cocina de salón.' },
-  // Flyer de baja resolución a propósito (220px) → debe disparar la portada de Pexels.
-  { id: 'demo-7', previewUrl: 'https://picsum.photos/seed/demo-7/220/150', title: 'Diseñador/a gráfico', company: 'Agencia Pulpo', location: 'Remoto', category: 'Diseño y Marketing', source: '#', createdAt: daysAgo(18) },
-  // Sin imagen válida → falla y cae a la portada de Pexels.
-  { id: 'demo-8', title: 'Operario/a de mantenimiento', company: 'Minera Puna', location: 'San Antonio de los Cobres', category: 'Minería y Campo', source: '#', createdAt: daysAgo(40) },
-];
-
-// Si existe public/dev-jobs.json (data real scrapeada), el modo dev la usa para
-// ver cómo se vería en producción. Si no está, cae a los 8 ejemplos de arriba.
-let devJobsCache: Job[] | null = null;
-async function loadDevJobs(): Promise<Job[]> {
-  if (devJobsCache) return devJobsCache;
-  try {
-    const res = await fetch('/dev-jobs.json');
-    if (!res.ok) throw new Error('no dev-jobs');
-    const raw = await res.json();
-    if (!Array.isArray(raw) || raw.length === 0) throw new Error('vacío');
-    devJobsCache = raw.map((j: any) => ({
-      id: j.id || j._docId,
-      driveId: j.driveId,
-      title: j.title || 'Sin título',
-      source: j.source || '#',
-      category: j.category,
-      company: j.company,
-      location: j.location,
-      description: j.description,
-      createdAt: j.createdAt || new Date().toISOString(),
-      date: j.date,
-    })) as Job[];
-    return devJobsCache;
-  } catch {
-    devJobsCache = MOCK_JOBS;
-    return MOCK_JOBS;
-  }
-}
-// ─────────────────────────────────────────────────────────────────────────
 
 enum OperationType {
   CREATE = 'create',
@@ -97,9 +47,6 @@ const CACHE_KEY = 'empleos_salta_jobs_cache';
 const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
 
 export const getJobs = async (): Promise<Job[]> => {
-  if (!isFirebaseConfigured) {
-    return loadDevJobs();
-  }
   try {
     const cachedData = sessionStorage.getItem(CACHE_KEY);
     if (cachedData) {
@@ -125,12 +72,6 @@ export const getJobs = async (): Promise<Job[]> => {
 };
 
 export const getJob = async (id: string): Promise<Job> => {
-  if (!isFirebaseConfigured) {
-    const jobs = await loadDevJobs();
-    const found = jobs.find(j => j.id === id);
-    if (!found) throw new Error('Not found');
-    return found;
-  }
   try {
     const snap = await getDoc(doc(db, 'jobs', id));
     if (!snap.exists()) {

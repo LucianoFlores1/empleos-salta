@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
 /**
  * Indica si Firebase está realmente configurado (hay .env con la API key).
@@ -27,39 +27,22 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export const loginWithEmail = async (email: string, pass: string) => {
-    try {
-        const result = await signInWithEmailAndPassword(auth, email, pass);
-        return result.user;
-    } catch (error: any) {
-        // Si el usuario no existe y es el admin solicitado, lo creamos y "hasheamos" la contraseña mediante Firebase Auth
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-            if (email.toLowerCase() === 'aramayodanielagimena32@gmail.com') {
-                 try {
-                     const result = await createUserWithEmailAndPassword(auth, email, pass);
-                     await setDoc(doc(db, 'admins', result.user.uid), {}, { merge: true }).catch(console.error);
-                     return result.user;
-                 } catch (createError) {
-                     console.error("Error creating user:", createError);
-                     throw createError;
-                 }
-            }
-        }
-        console.error("Email login failed:", error);
-        throw error;
-    }
+    const result = await signInWithEmailAndPassword(auth, email, pass);
+    return result.user;
 }
 
 export const loginWithGoogle = async () => {
-    try {
-        const result = await signInWithPopup(auth, googleProvider);
-        if (result.user.email === 'chisipufli.chisito@gmail.com' || result.user.email?.toLowerCase() === 'aramayodanielagimena32@gmail.com') {
-            await setDoc(doc(db, 'admins', result.user.uid), {}, { merge: true }).catch(console.error);
-        }
-        return result.user;
-    } catch (error) {
-        console.error("Login failed:", error);
-        throw error;
-    }
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
 };
 
 export const logout = () => signOut(auth);
+
+export const checkIsAdmin = async (uid: string) => {
+    try {
+        const snap = await getDoc(doc(db, 'admins', uid));
+        return snap.exists();
+    } catch (e) {
+        return false;
+    }
+};
